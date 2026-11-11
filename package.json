@@ -1,0 +1,18 @@
+{
+  "name": "rihab-baabou-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Rihab Baabou · site vitrine (React + TypeScript) et CMS (Express + TypeScript + MongoDB)",
+  "workspaces": ["shared", "server", "client"],
+  "engines": { "node": ">=20.12" },
+  "scripts": {
+    "postinstall": "npm run build -w shared",
+    "dev": "npm run build -w shared && node scripts/dev.mjs",
+    "build": "npm run build -w shared && npm run build -w server && npm run build -w client",
+    "typecheck": "npm run build -w shared && npm run typecheck -w server && npm run typecheck -w client",
+    "start": "npm run start -w server",
+    "test": "npm run test -w server",
+    "seed": "npm run seed -w server",
+    "create-admin": "npm run create-admin -w server"
+  }
+}

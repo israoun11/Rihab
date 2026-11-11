@@ -1,0 +1,109 @@
+/* ==========================================================================
+   Additions for the requested changes only. The original style.css is unchanged.
+   ========================================================================== */
+
+/* Projects page: projects grouped by category */
+.cat-group + .cat-group { margin-top: clamp(80px, 10vw, 160px); }
+.cat-group__title { margin-bottom: clamp(28px, 3.5vw, 48px); }
+
+/* Same size, ratio and proportions for every project card (Curated Comfort included) */
+.index-grid--uniform .proj,
+.index-grid--uniform .proj:nth-child(3n+1),
+.index-grid--uniform .proj:nth-child(3n+3) { grid-column: span 6; margin-top: 0; }
+@media (max-width: 760px) {
+  .index-grid--uniform .proj,
+  .index-grid--uniform .proj:nth-child(3n+1),
+  .index-grid--uniform .proj:nth-child(3n+3) { grid-column: 1 / -1; }
+}
+
+/* Card text reduced to location, type and the discovery link */
+.proj--compact .proj__info { grid-template-columns: minmax(0, 1fr); row-gap: 10px; }
+.proj--compact .proj__info > * { grid-column: 1; }
+
+/* ==========================================================================
+   Homepage: shorter transition between the hero and the À propos section
+   ========================================================================== */
+.hero + .section { padding-top: clamp(40px, 5vw, 80px); }
+
+/* ==========================================================================
+   Homepage projects slider: full-width landscape image, edge to edge,
+   project details over the bottom of the image, button below
+   ========================================================================== */
+.work--slider .s-head { margin-bottom: clamp(40px, 5vw, 72px); }
+.pslider { position: relative; touch-action: pan-y; }
+.pslider__frame {
+  position: relative; width: 100%;
+  aspect-ratio: 16 / 10; max-height: calc(100svh - 120px); min-height: 420px;
+  overflow: hidden; background: var(--surface);
+}
+@media (max-width: 640px) { .pslider__frame { aspect-ratio: 4 / 5; min-height: 0; } }
+.pslider__slide { position: absolute; inset: 0; display: block; text-decoration: none; opacity: 0; visibility: hidden; transition: opacity 1200ms var(--ease), visibility 0s linear 1200ms; }
+.pslider__slide.is-active { opacity: 1; visibility: visible; z-index: 1; transition: opacity 1200ms var(--ease), visibility 0s; }
+/* The image always covers the whole frame, whatever its own proportions or size:
+   frame and image are pinned to the four edges, the image is cropped (never letterboxed),
+   and a slight permanent zoom hides any thin border baked into an uploaded picture. */
+.pslider__slide .frame { position: absolute; inset: 0; width: 100%; height: 100%; aspect-ratio: auto; max-width: none; }
+.pslider__slide .frame img {
+  position: absolute; inset: 0; display: block;
+  width: 100%; height: 100%; min-width: 100%; min-height: 100%; max-width: none;
+  object-fit: cover; object-position: center;
+  transform: scale(1.08); transform-origin: center; transition: transform 6000ms var(--ease);
+}
+.pslider__slide.is-active .frame img { transform: scale(1.03); }
+.pslider__shade {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background: linear-gradient(0deg, rgba(11, 11, 13, 0.78) 0%, rgba(11, 11, 13, 0.38) 26%, rgba(11, 11, 13, 0) 50%);
+}
+.pslider__text {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+  padding: 0 clamp(20px, 3vw, 36px) clamp(22px, 3vw, 36px);
+  display: grid; gap: 10px; justify-items: start; color: var(--paper);
+}
+.pslider__text > * { animation: psText 900ms var(--ease) both; }
+.pslider__text > :nth-child(2) { animation-delay: 90ms; }
+.pslider__text > :nth-child(3) { animation-delay: 180ms; }
+@keyframes psText { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.pslider__title { font-family: var(--serif); font-size: clamp(2.25rem, 1.6rem + 2.4vw, 3.5rem); line-height: 1; letter-spacing: -0.01em; color: #fff; text-shadow: 0 2px 24px rgba(11, 11, 13, 0.35); }
+.pslider__title a { text-decoration: none; color: inherit; }
+.pslider__meta { font-size: 1.0625rem; color: rgba(245, 242, 237, 0.78); }
+.pslider__link { margin-top: 8px; color: #fff; }
+.pslider__link > span::after { transform: scaleX(1); }
+.pslider__end { display: flex; justify-content: center; margin-top: clamp(32px, 4vw, 56px); }
+.on-paper .pslider__end .btn--ghost { background: transparent; color: var(--ink); }
+.on-paper .pslider__end .btn--ghost:hover { background: var(--ink); color: var(--paper); }
+
+/* Reduced motion: no automatic movement, instant changes */
+.pslider.is-static .pslider__slide,
+.pslider.is-static .pslider__slide .frame img,
+.pslider.is-static .pslider__text > * { transition: none !important; animation: none !important; }
+
+/* ==========================================================================
+   Formations page: image-only section and software courses
+   ========================================================================== */
+.fm-image { padding-block: clamp(56px, 7vw, 112px); }
+
+.courses { padding-block: clamp(72px, 8vw, 128px); }
+.courses__head { display: grid; justify-items: center; text-align: center; gap: 14px; margin-bottom: clamp(36px, 4.5vw, 64px); }
+.courses__label { font-size: var(--fs-label); letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted-paper); font-weight: 500; }
+.courses__title { font-family: var(--serif); font-size: clamp(2.25rem, 1.6rem + 2.2vw, 3.5rem); line-height: 1.05; letter-spacing: -0.01em; color: var(--ink); }
+.courses__rule { display: block; width: 44px; height: 1px; background: var(--rule-paper); margin-top: 6px; }
+.courses__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: clamp(14px, 1.6vw, 24px); }
+.course {
+  display: flex; flex-direction: column; align-items: flex-start;
+  background: #EAE5DF; padding: clamp(20px, 2vw, 30px) clamp(18px, 1.8vw, 26px) clamp(22px, 2.2vw, 32px);
+}
+.course__logo { display: none; }
+.courses__list.has-logos .course__logo { display: block; align-self: center; width: auto; height: clamp(64px, 6vw, 88px); max-width: 70%; object-fit: contain; margin: 4px 0 clamp(20px, 2.4vw, 32px); }
+.course__name { font-family: var(--serif); font-size: clamp(1.4rem, 1.2rem + 0.5vw, 1.75rem); line-height: 1.1; color: var(--ink); }
+.course__text { margin-top: 12px; font-size: 0.9375rem; line-height: 1.6; color: var(--muted-paper); flex: 1 0 auto; }
+.course__btn {
+  margin-top: clamp(20px, 2.2vw, 28px); align-self: stretch;
+  display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 16px;
+  border: 1px solid rgba(11, 11, 13, 0.4); color: var(--ink); text-decoration: none;
+  font-size: var(--fs-label); letter-spacing: 0.14em; text-transform: uppercase; font-weight: 500;
+  transition: background var(--t-micro) var(--ease), color var(--t-micro) var(--ease), border-color var(--t-micro) var(--ease);
+}
+.course__btn:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+@media (max-width: 1180px) { .courses__list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .courses__list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .courses__list { grid-template-columns: minmax(0, 1fr); } }
