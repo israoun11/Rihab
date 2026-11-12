@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "../i18n/Link";
 import type { Project } from "@rihab/shared";
 import { Frame } from "./Frame";
 import { Arrow } from "./Arrow";
@@ -7,6 +7,7 @@ import { Arrow } from "./Arrow";
 interface Labels {
   link: string;
   carouselLabel: string;
+  roleDescription: string;
 }
 
 interface Props {
@@ -113,7 +114,7 @@ export function ProjectSlider({ projects, labels, interval }: Props) {
       ref={rootRef}
       className={`pslider${reduceMotion ? " is-static" : ""}`}
       role="region"
-      aria-roledescription="carrousel"
+      aria-roledescription={labels.roleDescription}
       aria-label={labels.carouselLabel}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

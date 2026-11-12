@@ -1,7 +1,7 @@
 import { Router } from "express";
-import type { PublicPayload } from "@rihab/shared";
-import { getContent } from "../services/content.js";
-import { listCategories, listProjects } from "../services/projects.js";
+import { DEFAULT_LOCALE, isLocale, type PublicPayload } from "@rihab/shared";
+import { getPublicContent } from "../services/content.js";
+import { listPublicCategories, listPublicProjects } from "../services/projects.js";
 import { findMedia, openMediaStream } from "../services/media.js";
 import { objectIdSchema } from "../services/validation.js";
 import { notFound } from "../lib/httpError.js";
@@ -9,10 +9,15 @@ import { notFound } from "../lib/httpError.js";
 export function publicRouter(): Router {
   const r = Router();
 
-  /** Everything the public site needs in one request. Never cached, so saved changes show at once. */
-  r.get("/api/content", async (_req, res) => {
-    const [content, projects, categories] = await Promise.all([getContent(), listProjects(), listCategories()]);
-    const payload: PublicPayload = { content, projects, categories };
+  /**
+   * Everything the public site needs in one request, in one language (?lang=fr|ar|en).
+   * Always revalidated (no-cache + ETag): the browser gets a cheap 304 when nothing
+   * changed, and the new content as soon as something is saved in the dashboard.
+   */
+  r.get("/api/content", async (req, res) => {
+    const lang = isLocale(req.query.lang) ? req.query.lang : DEFAULT_LOCALE;
+    const [content, projects, categories] = await Promise.all([getPublicContent(lang), listPublicProjects(lang), listPublicCategories(lang)]);
+    const payload: PublicPayload = { lang, content, projects, categories };
     res.setHeader("Cache-Control", "no-cache");
     res.json(payload);
   });

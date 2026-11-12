@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import "./styles/style.css";
 import "./styles/site-additions.css";
+import "./styles/i18n.css";
 import { App } from "./App";
 
 document.documentElement.classList.add("js");

@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, usePagePath } from "../i18n/Link";
+import { useLocation } from "react-router-dom";
 import { useSite } from "../content/ContentContext";
 import { Arrow } from "./Arrow";
 import { currentNavKey, navItems } from "./navItems";
+import { WordmarkContent } from "./Wordmark";
+import { LangSwitch } from "../i18n/LangSwitch";
 
 const cur = (on: boolean) => (on ? ({ "aria-current": "page" } as const) : {});
 
 export function Nav({ solid }: { solid: boolean }) {
   const { content } = useSite();
   const { nav, identity, contact } = content.site;
-  const { pathname, hash } = useLocation();
-  const current = currentNavKey(pathname, hash);
+  const { hash } = useLocation();
+  const current = currentNavKey(usePagePath(), hash);
 
   /* ---------- Sticky navigation (transparent over the hero) ---------- */
   const [scrolled, setScrolled] = useState(false);
@@ -83,8 +86,8 @@ export function Nav({ solid }: { solid: boolean }) {
     }
   };
 
-  const desktop = navItems(nav, false);
-  const mobile = navItems(nav, true);
+  const desktop = navItems(content, false);
+  const mobile = navItems(content, true);
   const telHref = `tel:${contact.phone.replace(/[^\d+]/g, "")}`;
 
   return (
@@ -92,18 +95,20 @@ export function Nav({ solid }: { solid: boolean }) {
       <header className={`nav${solid ? " nav--solid" : ""}${!solid && scrolled ? " is-solid" : ""}`}>
         <div className="wrap nav__inner">
           <Link className="wordmark" to="/" aria-label={identity.homeLinkLabel}>
-            {identity.name}
-            <i aria-hidden="true"></i>
+            <WordmarkContent />
           </Link>
-          <nav className="nav__links" aria-label="Navigation principale">
+          <nav className="nav__links" aria-label={nav.mainLabel}>
             {desktop.map((it) => (
               <Link key={it.key} to={it.to} {...cur(current === it.key)}>
                 {it.label}
               </Link>
             ))}
-            <Link className="btn" to="/contact" {...cur(current === "contact")}>
-              {nav.cta}
-            </Link>
+            <LangSwitch label={nav.language} className="lang-switch--bar" />
+            {nav.ctaVisible && (
+              <Link className="btn" to="/contact" {...cur(current === "contact")}>
+                {nav.cta}
+              </Link>
+            )}
           </nav>
           <button ref={toggleRef} className="nav__toggle" type="button" aria-expanded={open} aria-controls="menu" onClick={openMenu}>
             <span>{nav.menu}</span>
@@ -123,9 +128,8 @@ export function Nav({ solid }: { solid: boolean }) {
         onKeyDown={onMenuKey}
       >
         <div className="wrap menu__head">
-          <Link className="wordmark" to="/" onClick={() => closeMenu(false)}>
-            {identity.name}
-            <i aria-hidden="true"></i>
+          <Link className="wordmark" to="/" aria-label={identity.homeLinkLabel} onClick={() => closeMenu(false)}>
+            <WordmarkContent />
           </Link>
           <button ref={closeRef} className="menu__close" type="button" onClick={() => closeMenu()}>
             <span>{nav.close}</span>
@@ -135,7 +139,7 @@ export function Nav({ solid }: { solid: boolean }) {
           </button>
         </div>
         <div className="wrap menu__body">
-          <nav aria-label="Navigation mobile">
+          <nav aria-label={nav.mobileLabel}>
             <ul className="menu__list">
               {mobile.map((it, i) => (
                 <li key={it.key}>
@@ -147,9 +151,12 @@ export function Nav({ solid }: { solid: boolean }) {
               ))}
             </ul>
           </nav>
-          <Link className="btn" to="/contact" onClick={() => closeMenu(false)}>
-            {nav.cta} <Arrow />
-          </Link>
+          {nav.ctaVisible && (
+            <Link className="btn" to="/contact" onClick={() => closeMenu(false)}>
+              {nav.cta} <Arrow />
+            </Link>
+          )}
+          <LangSwitch label={nav.language} className="lang-switch--menu" onSwitch={() => closeMenu(false)} />
           <div className="menu__foot">
             <span>{contact.location}</span>
             <a href={telHref}>{contact.phone}</a>

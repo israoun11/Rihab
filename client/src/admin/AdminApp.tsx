@@ -9,6 +9,7 @@ import { ProjectsAdmin } from "./Projects";
 import { ProjectEditor } from "./ProjectEditor";
 import { MediaLibrary } from "./MediaLibrary";
 import { confirmLeave, Spinner, ToastProvider } from "./ui";
+import { EditLangProvider } from "./editLang";
 import "./admin.css";
 
 export default function AdminApp() {
@@ -16,6 +17,9 @@ export default function AdminApp() {
 
   useEffect(() => {
     document.title = "Administration · Rihab Baabou";
+    // The dashboard is in French, left to right, whatever language the site was showing.
+    document.documentElement.lang = "fr";
+    document.documentElement.dir = "ltr";
     const robots = document.createElement("meta");
     robots.name = "robots";
     robots.content = "noindex, nofollow";
@@ -38,7 +42,11 @@ export default function AdminApp() {
 
   return (
     <div className="admin">
-      <ToastProvider>{user === undefined ? <Spinner /> : user === null ? <Login onLogin={setUser} /> : <Shell email={user} onLogout={() => setUser(null)} />}</ToastProvider>
+      <ToastProvider>
+        <EditLangProvider>
+          {user === undefined ? <Spinner /> : user === null ? <Login onLogin={setUser} /> : <Shell email={user} onLogout={() => setUser(null)} />}
+        </EditLangProvider>
+      </ToastProvider>
     </div>
   );
 }

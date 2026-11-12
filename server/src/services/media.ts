@@ -2,7 +2,7 @@ import { Readable } from "node:stream";
 import mongoose from "mongoose";
 import { imageSize } from "image-size";
 import { mediaBucket } from "../db.js";
-import { CONTENT_SCHEMA, type PageDef } from "@rihab/shared";
+import { CONTENT_SCHEMA, pickText, type PageDef } from "@rihab/shared";
 import { getContent } from "./content.js";
 import { ProjectModel } from "../models/index.js";
 import { badRequest, conflict, notFound } from "../lib/httpError.js";
@@ -101,7 +101,7 @@ export async function findUsages(url: string): Promise<string[]> {
     }
   }
   const projects = await ProjectModel.find({ $or: [{ "cover.src": url }, { "images.src": url }] }, { title: 1 }).lean();
-  for (const p of projects) usages.push(`Projet « ${p.title} »`);
+  for (const p of projects) usages.push(`Projet « ${pickText(p.title, "fr")} »`);
   return [...new Set(usages)];
 }
 

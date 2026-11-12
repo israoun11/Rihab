@@ -1,4 +1,4 @@
-import type { Category, Project, ProjectInput, SiteContent } from "@rihab/shared";
+import type { CategoryRecord, LocalizedText, ProjectInput, ProjectRecord, RawContent } from "@rihab/shared";
 import { api } from "../api/http";
 
 export interface MediaItem {
@@ -17,21 +17,21 @@ export const adminApi = {
   login: (email: string, password: string) => api<{ email: string }>("POST", "/api/auth/login", { email, password }),
   logout: () => api<void>("POST", "/api/auth/logout"),
 
-  content: () => api<SiteContent>("GET", "/api/admin/content"),
-  saveSection: (page: string, section: string, data: unknown) => api<SiteContent>("PUT", `/api/admin/content/${page}/${section}`, data),
-  resetSection: (page: string, section: string) => api<SiteContent>("DELETE", `/api/admin/content/${page}/${section}`),
+  content: () => api<RawContent>("GET", "/api/admin/content"),
+  saveSection: (page: string, section: string, data: unknown) => api<RawContent>("PUT", `/api/admin/content/${page}/${section}`, data),
+  resetSection: (page: string, section: string) => api<RawContent>("DELETE", `/api/admin/content/${page}/${section}`),
 
-  projects: () => api<Project[]>("GET", "/api/admin/projects"),
-  createProject: (p: ProjectInput) => api<Project>("POST", "/api/admin/projects", p),
-  updateProject: (id: string, p: ProjectInput) => api<Project>("PUT", `/api/admin/projects/${id}`, p),
+  projects: () => api<ProjectRecord[]>("GET", "/api/admin/projects"),
+  createProject: (p: ProjectInput) => api<ProjectRecord>("POST", "/api/admin/projects", p),
+  updateProject: (id: string, p: ProjectInput) => api<ProjectRecord>("PUT", `/api/admin/projects/${id}`, p),
   deleteProject: (id: string) => api<void>("DELETE", `/api/admin/projects/${id}`),
-  orderProjects: (ids: string[]) => api<Project[]>("PUT", "/api/admin/projects/order", { ids }),
+  orderProjects: (ids: string[]) => api<ProjectRecord[]>("PUT", "/api/admin/projects/order", { ids }),
 
-  categories: () => api<Category[]>("GET", "/api/admin/categories"),
-  createCategory: (slug: string, name: string) => api<Category>("POST", "/api/admin/categories", { slug, name }),
-  updateCategory: (id: string, name: string) => api<Category>("PUT", `/api/admin/categories/${id}`, { name }),
+  categories: () => api<CategoryRecord[]>("GET", "/api/admin/categories"),
+  createCategory: (slug: string, name: LocalizedText) => api<CategoryRecord>("POST", "/api/admin/categories", { slug, name }),
+  updateCategory: (id: string, name: LocalizedText) => api<CategoryRecord>("PUT", `/api/admin/categories/${id}`, { name }),
   deleteCategory: (id: string) => api<void>("DELETE", `/api/admin/categories/${id}`),
-  orderCategories: (ids: string[]) => api<Category[]>("PUT", "/api/admin/categories/order", { ids }),
+  orderCategories: (ids: string[]) => api<CategoryRecord[]>("PUT", "/api/admin/categories/order", { ids }),
 
   media: () => api<MediaItem[]>("GET", "/api/admin/media"),
   upload: (file: File) => {

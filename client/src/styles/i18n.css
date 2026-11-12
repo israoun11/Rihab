@@ -1,0 +1,145 @@
+/* ==========================================================================
+   Languages (FR / AR / EN), right-to-left layout for Arabic, logo, loading.
+   The original style.css is unchanged: everything here is an override.
+   CSS grid and flex layouts mirror by themselves with dir="rtl"; the rules
+   below handle what is drawn with physical left/right values.
+   ========================================================================== */
+
+:root {
+  --sans-ar: "IBM Plex Sans Arabic", system-ui, sans-serif;
+  --serif-ar: "Noto Naskh Arabic", "IBM Plex Sans Arabic", serif;
+}
+
+/* ---------- Language switcher ---------- */
+.lang-switch { display: inline-flex; align-items: center; gap: 2px; }
+.lang-switch a {
+  position: relative; display: inline-flex; align-items: center; justify-content: center;
+  min-width: 34px; min-height: 44px; padding: 0 6px;
+  font-family: var(--sans); font-size: 0.75rem; font-weight: 500; letter-spacing: 0.12em;
+  color: var(--muted); text-decoration: none; transition: color var(--t-micro) var(--ease);
+}
+.lang-switch a:hover { color: var(--paper); }
+.lang-switch a[aria-current="true"] { color: var(--paper); }
+.lang-switch a[aria-current="true"]::before {
+  content: ""; position: absolute; left: 50%; bottom: 8px; width: 5px; height: 5px; margin-left: -2.5px; background: var(--wine);
+}
+.lang-switch a + a::after {
+  content: ""; position: absolute; inset-inline-start: -1px; top: 50%; width: 1px; height: 10px; margin-top: -5px; background: var(--rule);
+}
+/* In the bar: the nav link underline does not apply to the switcher */
+.nav__links .lang-switch a::after { transform: none; transition: none; left: auto; right: auto; bottom: auto; }
+.nav__links .lang-switch a:first-child::after { display: none; }
+.nav__links .lang-switch { margin-inline: clamp(-8px, -0.6vw, 0px); }
+.lang-switch--menu { align-self: flex-start; margin-inline-start: -6px; }
+.lang-switch--menu a { min-height: 48px; min-width: 48px; font-size: 0.875rem; }
+.lang-switch--footer { margin-inline: auto; }
+@media (max-width: 640px) { .lang-switch--footer { order: -1; width: 100%; margin-inline: -6px 0; } }
+
+/* ---------- Logo (Éléments communs › Identité) ---------- */
+.wordmark__logo { display: block; height: 32px; width: auto; max-width: 220px; object-fit: contain; }
+.footer__name .wordmark__logo { height: clamp(40px, 5vw, 72px); max-width: 360px; }
+
+/* ---------- First load / server unreachable ---------- */
+.site-status { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: var(--ink); color: var(--paper); }
+.site-status__loading { display: flex; }
+.site-status__dot { width: 9px; height: 9px; background: var(--wine); animation: site-status 1.1s var(--ease) infinite alternate; }
+@keyframes site-status { from { opacity: 0.25; transform: scale(0.8); } to { opacity: 1; transform: scale(1.15); } }
+.site-status__box { display: grid; gap: 14px; max-width: 46ch; text-align: center; justify-items: center; }
+.site-status__title { font-family: var(--serif); font-size: var(--fs-h3); line-height: 1.1; }
+.site-status__box p:not(.site-status__title) { color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .site-status__dot { animation: none; } }
+
+/* ==========================================================================
+   Arabic typography
+   ========================================================================== */
+html[lang="ar"] body { font-family: var(--sans-ar); line-height: 1.75; }
+html[lang="ar"] :is(.display, .h3, .h4, .hero__title, .page-title, .wordmark, .footer__name, .menu__list a, .next-proj__title,
+  .pslider__title, .site-status__title, .courses__title, .cat-group__title, .svc__title, .step__title, .audiences h3) {
+  font-family: var(--serif-ar);
+  letter-spacing: 0;
+}
+html[lang="ar"] :is(.hero__title, .display, .page-title) { line-height: 1.25; }
+html[lang="ar"] .hero__title { line-height: 1.2; }
+/* Arabic letters join: no letter spacing, no capitals, no italics */
+html[lang="ar"] :is(.label, .meta, .hero__foot, .filters__label, .footer__col h2, .nav__toggle, .menu__close, .menu__list a small,
+  .courses__label, .course__btn, .btn, .link, .nav__links a, .status) {
+  letter-spacing: 0; text-transform: none;
+}
+html[lang="ar"] em { font-style: normal; color: inherit; }
+html[lang="ar"] :is(.display, .hero__title, .page-title) em { font-style: normal; opacity: 0.82; }
+/* Numbers, e-mail, phone and Latin names stay left-to-right inside Arabic text */
+html[lang="ar"] :is(a[href^="tel:"], a[href^="mailto:"], .num, .when) { unicode-bidi: isolate; direction: ltr; }
+html[lang="ar"] .when { text-align: right; }
+
+/* ==========================================================================
+   Right-to-left layout
+   ========================================================================== */
+[dir="rtl"] .skip-link { left: auto; right: 16px; }
+[dir="rtl"] .wrap {
+  padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
+}
+
+/* Arrows point the reading direction */
+[dir="rtl"] .arrow { transform: scaleX(-1); }
+[dir="rtl"] .link:hover .arrow, [dir="rtl"] .btn:hover .arrow { transform: scaleX(-1) translateX(4px); }
+
+/* Underlines grow from the start of the line */
+[dir="rtl"] .link > span::after,
+[dir="rtl"] .nav__links a:not(.btn)::after,
+[dir="rtl"] .svc::before,
+[dir="rtl"] .filter::after { transform-origin: right; }
+
+/* Navigation and menu */
+[dir="rtl"] .nav__toggle { padding: 0 12px 0 4px; }
+[dir="rtl"] .menu__list a[aria-current="page"] small::before { margin-right: 0; margin-left: 8px; }
+[dir="rtl"] .wordmark { direction: rtl; }
+[dir="rtl"] .menu__foot a { justify-self: start; }
+
+/* Hero: the portrait sits on the left half and dissolves towards the text */
+[dir="rtl"] .hero--portrait .hero__media {
+  left: 0; right: 46%;
+  -webkit-mask-image: linear-gradient(270deg, transparent 0%, #000 34%);
+  mask-image: linear-gradient(270deg, transparent 0%, #000 34%);
+}
+@media (max-width: 980px) {
+  [dir="rtl"] .hero--portrait .hero__media {
+    right: 0;
+    -webkit-mask-image: linear-gradient(180deg, #000 55%, transparent 100%);
+    mask-image: linear-gradient(180deg, #000 55%, transparent 100%);
+  }
+}
+[dir="rtl"] .hero__title span + span { padding-left: 0; padding-right: clamp(0px, 9vw, 160px); }
+@media (max-width: 980px) { [dir="rtl"] .hero__title span + span { padding-right: 0; } }
+
+/* Demo tag, project attribution, steps, topics, audiences, tools, filters */
+[dir="rtl"] .demo-tag { left: auto; right: 12px; }
+[dir="rtl"] .proj__attr { border-left: 0; padding-left: 0; border-right: 2px solid var(--wine); padding-right: 10px; }
+[dir="rtl"] .step + .step { padding-left: 0; border-left: 0; padding-right: clamp(16px, 2vw, 32px); border-right: 1px solid var(--rule); }
+[dir="rtl"] .step::before { left: auto; right: 0; }
+[dir="rtl"] .step + .step::before { left: auto; right: -4px; }
+@media (max-width: 980px) {
+  [dir="rtl"] .step:nth-child(3) { border-right: 0; padding-right: 0; }
+  [dir="rtl"] .step:nth-child(3)::before { right: 0; }
+}
+@media (max-width: 560px) {
+  [dir="rtl"] .step + .step { border-right: 0; padding-right: 0; }
+  [dir="rtl"] .step + .step::before { right: 0; }
+}
+[dir="rtl"] .teach__topics li + li { padding-left: 0; border-left: 0; padding-right: 24px; border-right: 1px solid var(--rule-paper); }
+[dir="rtl"] .audiences li + li { padding-left: 0; border-left: 0; padding-right: 24px; border-right: 1px solid var(--rule); }
+@media (max-width: 860px) {
+  [dir="rtl"] .audiences li + li { padding-right: 0; border-right: 0; }
+}
+@media (max-width: 980px) {
+  [dir="rtl"] .teach__topics li + li { padding-right: 0; border-right: 0; }
+}
+[dir="rtl"] .tools { border-left: 0; border-right: 1px solid var(--rule); }
+[dir="rtl"] .tools li { border-right: 0; border-left: 1px solid var(--rule); }
+[dir="rtl"] .filters__label { margin-right: 0; margin-left: 8px; }
+[dir="rtl"] .svc:hover .svc__title { transform: translateX(-8px); }
+[dir="rtl"] .next-proj:hover .next-proj__title { transform: translateX(-12px); }
+
+/* Form: the select arrow moves to the left */
+[dir="rtl"] .field select { padding-right: 16px; padding-left: 44px; background-position: 16px 50%, 22px 50%; }
+[dir="rtl"] :is(input[type="email"], input[type="tel"]) { direction: ltr; text-align: right; }

@@ -1,9 +1,10 @@
-import { Link, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import { Link } from "../i18n/Link";
 import { useSite } from "../content/ContentContext";
 import { useSeo } from "../hooks/useSeo";
 import { useEntrances } from "../hooks/useEntrances";
 import { Frame, type FrameRatio } from "../components/Frame";
-import { BtnLink, CtaBand, TextLink, pad2 } from "../components/Blocks";
+import { BtnLink, CtaBand, Sections, TextLink, pad2 } from "../components/Blocks";
 import { NotFound } from "./NotFound";
 
 /** Gallery layout of the original design, repeated for longer galleries. */
@@ -23,7 +24,7 @@ export function ProjectDetail() {
   const name = content.site.identity.name;
 
   useSeo(p ? `${p.title} · ${name}` : name, p ? `${p.title}, ${p.place} · ${p.typeLabel}. ${p.description}` : "");
-  useEntrances([slug]);
+  useEntrances([slug, content.projectDetail.layout]);
 
   if (!p) return <NotFound />;
 
@@ -73,7 +74,11 @@ export function ProjectDetail() {
         <p className="lead">{p.description}</p>
         {hasDemo && <p className="note">{L.demoNote}</p>}
       </div>
-      {gallery.length > 0 && (
+      <Sections
+        layout={content.projectDetail.layout.sections}
+        blocks={{
+          gallery: () =>
+            gallery.length > 0 && (
         <div className="wrap grid pd-gallery">
           {gallery.map((img, i) => {
             const g = GALLERY[i % GALLERY.length] ?? GALLERY[0]!;
@@ -85,8 +90,10 @@ export function ProjectDetail() {
             );
           })}
         </div>
-      )}
-      {next && nextImg && (
+            ),
+          next: () =>
+            next &&
+            nextImg && (
         <div className="wrap" style={{ marginTop: "clamp(80px,10vw,160px)" }}>
           <Link className="next-proj" to={`/projets/${next.slug}`}>
             <span className="label">{L.next}</span>
@@ -99,11 +106,15 @@ export function ProjectDetail() {
             </span>
           </Link>
         </div>
-      )}
-      <CtaBand title={cta.title}>
-        <BtnLink to="/contact">{cta.primary}</BtnLink>
-        <TextLink to="/projets">{cta.secondary}</TextLink>
-      </CtaBand>
+            ),
+          cta: () => (
+            <CtaBand title={cta.title}>
+              <BtnLink to="/contact">{cta.primary}</BtnLink>
+              <TextLink to="/projets">{cta.secondary}</TextLink>
+            </CtaBand>
+          ),
+        }}
+      />
     </main>
   );
 }

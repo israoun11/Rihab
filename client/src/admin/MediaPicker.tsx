@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent } from "react";
-import type { ImageValue } from "@rihab/shared";
+import type { RawImage } from "@rihab/shared";
 import { ApiError } from "../api/http";
 import { adminApi, formatSize, type MediaItem } from "./api";
 import { originalImages } from "./originalImages";
@@ -10,12 +10,12 @@ const MAX_MB = 10;
 
 interface Props {
   ratio: string;
-  current?: ImageValue | null;
-  onPick: (img: ImageValue) => void;
+  current?: RawImage | null;
+  onPick: (img: RawImage) => void;
   onClose: () => void;
 }
 
-type Choice = { kind: "media"; item: MediaItem } | { kind: "original"; img: ImageValue };
+type Choice = { kind: "media"; item: MediaItem } | { kind: "original"; img: RawImage };
 
 /** Choose an image from the library, upload a new one, or restore an original image. */
 export function MediaPicker({ ratio, current, onPick, onClose }: Props) {
@@ -70,11 +70,12 @@ export function MediaPicker({ ratio, current, onPick, onClose }: Props) {
 
   const confirm = () => {
     if (!choice) return;
-    const keepAlt = current?.alt ?? "";
+    // The description (in every language) of the image being replaced is kept.
+    const keepAlt = current?.alt ?? { fr: "" };
     if (choice.kind === "media") {
       onPick({ src: choice.item.url, width: choice.item.width, height: choice.item.height, alt: keepAlt });
     } else {
-      onPick({ ...choice.img, alt: choice.img.alt || keepAlt });
+      onPick({ ...choice.img, alt: choice.img.alt?.fr ? choice.img.alt : keepAlt });
     }
     onClose();
   };

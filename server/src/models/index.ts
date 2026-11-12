@@ -4,7 +4,8 @@ import mongoose, { Schema, type InferSchemaType } from "mongoose";
 const ImageSchema = new Schema(
   {
     src: { type: String, required: true },
-    alt: { type: String, default: "" },
+    /** { fr, ar?, en? } (a plain string in data saved before the site was multilingual). */
+    alt: { type: Schema.Types.Mixed, default: () => ({ fr: "" }) },
     width: { type: Number, required: true },
     height: { type: Number, required: true },
     srcSet: { type: String },
@@ -27,7 +28,8 @@ export const ContentPage = mongoose.model("ContentPage", ContentPageSchema, "con
 const CategorySchema = new Schema(
   {
     slug: { type: String, required: true, unique: true },
-    name: { type: String, required: true },
+    /** { fr, ar?, en? } */
+    name: { type: Schema.Types.Mixed, required: true },
     order: { type: Number, default: 0, index: true },
   },
   { timestamps: true },
@@ -39,12 +41,13 @@ export type CategoryDoc = InferSchemaType<typeof CategorySchema> & { _id: mongoo
 const ProjectSchema = new Schema(
   {
     slug: { type: String, required: true, unique: true },
-    title: { type: String, required: true },
-    place: { type: String, required: true },
+    /* Texts are { fr, ar?, en? } objects (see @rihab/shared i18n). */
+    title: { type: Schema.Types.Mixed, required: true },
+    place: { type: Schema.Types.Mixed, required: true },
     category: { type: String, required: true, index: true },
-    typeLabel: { type: String, required: true },
-    description: { type: String, required: true },
-    attribution: { type: String, default: "" },
+    typeLabel: { type: Schema.Types.Mixed, required: true },
+    description: { type: Schema.Types.Mixed, required: true },
+    attribution: { type: Schema.Types.Mixed, default: () => ({ fr: "" }) },
     cover: { type: ImageSchema, required: true },
     images: { type: [ImageSchema], default: [] },
     order: { type: Number, default: 0, index: true },

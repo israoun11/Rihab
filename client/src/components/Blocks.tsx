@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
+import { Fragment, type ReactNode } from "react";
+import { visibleKeys, type LayoutItem } from "@rihab/shared";
+import { Link } from "../i18n/Link";
 import { Arrow } from "./Arrow";
 import { Lines } from "./Rich";
 
@@ -61,3 +62,17 @@ export function Steps({ items }: { items: { title: string; text: string }[] }) {
 }
 
 export const pad2 = (n: number) => String(n).padStart(2, "0");
+
+/**
+ * Renders the sections of a page in the order chosen in the dashboard
+ * (« Sections de la page »), skipping the hidden ones.
+ */
+export function Sections({ layout, blocks }: { layout: LayoutItem[]; blocks: Record<string, () => ReactNode> }) {
+  return (
+    <>
+      {visibleKeys(layout).map((k) => (
+        <Fragment key={k}>{blocks[k]?.()}</Fragment>
+      ))}
+    </>
+  );
+}

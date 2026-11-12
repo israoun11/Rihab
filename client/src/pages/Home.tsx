@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "../i18n/Link";
 import { useSite } from "../content/ContentContext";
 import { useSeo } from "../hooks/useSeo";
 import { useEntrances } from "../hooks/useEntrances";
@@ -7,13 +7,14 @@ import { useHeroReveal } from "../hooks/useHeroReveal";
 import { Arrow } from "../components/Arrow";
 import { Frame } from "../components/Frame";
 import { Lines, Paragraphs, SpanLines } from "../components/Rich";
-import { BtnLink, CtaBand, TextLink, pad2 } from "../components/Blocks";
+import { BtnLink, CtaBand, Sections, TextLink, pad2 } from "../components/Blocks";
 import { ProjectSlider } from "../components/ProjectSlider";
 
 /**
  * Homepage: the hero, then a short preview of each main part of the site
- * (À propos, Services, Projets, Contact), each leading to its page. The
- * Formations page stays reachable from the navigation.
+ * (À propos, Services, Projets, Formations, Contact), each leading to its page.
+ * Order and visibility of the previews are set in the dashboard (Accueil ›
+ * Sections de la page); the Formations preview is hidden by default.
  */
 export function Home() {
   const { content, projects } = useSite();
@@ -21,11 +22,13 @@ export function Home() {
   const sv = content.home.services;
   const pj = content.home.projects;
   const ct = content.home.contact;
+  const fm = content.home.formations;
+  const up = content.formations.upcoming;
   const heroRef = useRef<HTMLElement>(null);
 
   useSeo(seo.title, seo.description);
   useHeroReveal(heroRef, hero.image.src);
-  useEntrances([]);
+  useEntrances([content.home.layout]);
 
   const serviceCount = Math.max(1, Math.min(content.services.list.items.length, Number.parseInt(sv.count, 10) || 3));
   const interval = Math.max(3, Math.min(15, Number.parseFloat(pj.interval.replace(",", ".")) || 6));
@@ -89,7 +92,10 @@ export function Home() {
         </div>
       </section>
 
-      {/* ---------- À propos ---------- */}
+      <Sections
+        layout={content.home.layout.sections}
+        blocks={{
+          about: () => (
       <section className="section about" id="a-propos" aria-labelledby="about-title">
         <div className="wrap grid">
           <p className="label" style={{ gridColumn: "1/-1", gridRow: 1 }}>
@@ -120,8 +126,8 @@ export function Home() {
           )}
         </div>
       </section>
-
-      {/* ---------- Services ---------- */}
+          ),
+          services: () => (
       <section className="section" id="services" aria-labelledby="svc-title">
         <div className="wrap grid">
           <div className="grid s-head" style={{ gridColumn: "1/-1" }}>
@@ -145,8 +151,8 @@ export function Home() {
           </div>
         </div>
       </section>
-
-      {/* ---------- Projets ---------- */}
+          ),
+          projects: () => (
       <section className="section on-paper work--slider" id="projets" aria-labelledby="work-title">
         <div className="wrap">
           <div className="grid s-head">
@@ -159,7 +165,7 @@ export function Home() {
             </p>
           </div>
           <div data-in>
-            <ProjectSlider projects={projects} interval={interval} labels={pj} />
+            {projects.length > 0 && <ProjectSlider projects={projects} interval={interval} labels={pj} />}
           </div>
           <div className="pslider__end">
             <BtnLink to="/projets" ghost>
@@ -168,14 +174,52 @@ export function Home() {
           </div>
         </div>
       </section>
-
-      {/* ---------- Contact ---------- */}
-      <CtaBand title={content.contact.intro.title}>
-        <BtnLink to="/contact">{ct.primary}</BtnLink>
-        <a className="link" href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener">
-          <span>{ct.secondary}</span> <Arrow />
-        </a>
-      </CtaBand>
+          ),
+          formations: () => (
+            <section className="section on-paper teach" id="formations" aria-labelledby="teach-title">
+              <div className="wrap grid">
+                <p className="label" style={{ gridColumn: "1/-1" }}>
+                  {fm.label}
+                </p>
+                <h2 className="display" id="teach-title" data-in>
+                  <Lines text={fm.title} />
+                </h2>
+                <div className="teach__body" data-in>
+                  <div className="prose">
+                    <Paragraphs text={fm.text} />
+                  </div>
+                  <p className="status">
+                    <i aria-hidden="true"></i>
+                    {up.status}
+                  </p>
+                </div>
+                {up.topics.length > 0 && (
+                  <ul className="teach__topics" aria-label={up.topicsAria}>
+                    {up.topics.map((t, i) => (
+                      <li key={i} data-in style={{ ["--d" as string]: `${i * 90}ms` }}>
+                        <span>{t.label}</span>
+                        {t.title}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="teach__foot">
+                  <span className="meta">{fm.meta}</span>
+                  <BtnLink to="/formations">{fm.button}</BtnLink>
+                </div>
+              </div>
+            </section>
+          ),
+          contact: () => (
+            <CtaBand title={content.contact.intro.title}>
+              <BtnLink to="/contact">{ct.primary}</BtnLink>
+              <a className="link" href={`https://wa.me/${whatsapp}`} target="_blank" rel="noopener">
+                <span>{ct.secondary}</span> <Arrow />
+              </a>
+            </CtaBand>
+          ),
+        }}
+      />
     </main>
   );
 }

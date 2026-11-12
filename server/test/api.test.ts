@@ -151,7 +151,7 @@ describe("Contenu", () => {
     const hero = (await call("GET", "/api/admin/content")).json.home.hero;
     const empty = await call("PUT", "/api/admin/content/home/hero", { ...hero, title: "  " });
     assert.equal(empty.status, 400);
-    assert.ok(empty.json.details.some((d: { path: string }) => d.path === "title"));
+    assert.ok(empty.json.details.some((d: { path: string }) => d.path.startsWith("title")));
     const extra = await call("PUT", "/api/admin/content/home/hero", { ...hero, pirate: "x" });
     assert.equal(extra.status, 400);
     const ext = await call("PUT", "/api/admin/content/home/hero", { ...hero, image: { ...hero.image, src: "https://evil.example/x.png" } });
@@ -287,7 +287,7 @@ describe("Projets et catégories", () => {
     const created = await call("POST", "/api/admin/categories", { slug: "bureaux", name: "Bureaux" });
     assert.equal(created.status, 201);
     const renamed = await call("PUT", `/api/admin/categories/${created.json.id}`, { name: "Bureaux & ateliers" });
-    assert.equal(renamed.json.name, "Bureaux & ateliers");
+    assert.deepEqual(renamed.json.name, { fr: "Bureaux & ateliers" });
     const del = await call("DELETE", `/api/admin/categories/${created.json.id}`);
     assert.equal(del.status, 204);
   });

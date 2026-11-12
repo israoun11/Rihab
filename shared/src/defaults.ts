@@ -1,4 +1,24 @@
-import type { ImageValue, SiteContent } from "./schema.js";
+import type { ImageValue, LayoutItem, SiteContent } from "./schema.js";
+
+/** Every block visible, in the given order. */
+export const shown = (...keys: string[]): LayoutItem[] => keys.map((key) => ({ key, visible: true }));
+
+/** Original colours and fonts of the design (style.css). */
+export const DEFAULT_DESIGN: SiteContent["site"]["design"] = {
+  ink: "#0B0B0D",
+  surface: "#151416",
+  paper: "#F5F2ED",
+  wine: "#781F35",
+  wineHover: "#8E2742",
+  muted: "#B8B2B3",
+  mutedPaper: "#4A4446",
+  sans: "Hanken Grotesk",
+  serif: "Instrument Serif",
+  arabicSans: "IBM Plex Sans Arabic",
+  arabicSerif: "Noto Naskh Arabic",
+};
+
+export const DEFAULT_NAV_ITEMS = (): LayoutItem[] => shown("home", "about", "services", "projects", "formations", "contact");
 
 /** Narrow no-break space used before French ? ! : ; */
 const NB = " ";
@@ -26,7 +46,11 @@ export const DEFAULT_CONTENT: SiteContent = {
       skipLink: "Aller au contenu",
       demoTag: "Image de démonstration",
       demoAltPrefix: "Image de démonstration à remplacer : ",
+      logo: null,
+      favicon: null,
     },
+    seo: { shareImage: null },
+    design: DEFAULT_DESIGN,
     contact: {
       email: "baabourihab@gmail.com",
       phone: "+216 29 545 981",
@@ -34,6 +58,8 @@ export const DEFAULT_CONTENT: SiteContent = {
       location: "Gabès, Tunisie",
     },
     nav: {
+      items: DEFAULT_NAV_ITEMS(),
+      ctaVisible: true,
       home: "Accueil",
       about: "À propos",
       services: "Services",
@@ -43,6 +69,9 @@ export const DEFAULT_CONTENT: SiteContent = {
       cta: "Parlons de votre projet",
       menu: "Menu",
       close: "Fermer",
+      mainLabel: "Navigation principale",
+      mobileLabel: "Navigation mobile",
+      language: "Langue du site",
     },
     footer: {
       tagline: "Architecture d’intérieur & formation",
@@ -70,6 +99,15 @@ export const DEFAULT_CONTENT: SiteContent = {
   },
 
   home: {
+    layout: {
+      sections: [
+        { key: "about", visible: true },
+        { key: "services", visible: true },
+        { key: "projects", visible: true },
+        { key: "formations", visible: false },
+        { key: "contact", visible: true },
+      ],
+    },
     seo: {
       title: "Rihab Baabou · Architecture d’intérieur à Gabès",
       description:
@@ -109,12 +147,9 @@ export const DEFAULT_CONTENT: SiteContent = {
       text: "Des espaces de vie et des lieux professionnels, explorés à travers leurs usages, leurs ambiances et leurs détails.",
       link: "Découvrir le projet",
       interval: "6",
-      meta: "Résidentiel · Commercial",
       button: "Voir tous les projets",
       carouselLabel: "Projets à la une",
-      prev: "Projet précédent",
-      next: "Projet suivant",
-      goTo: "Afficher le projet {n} : {title}",
+      roleDescription: "carrousel",
     },
     formations: {
       label: "Transmission",
@@ -130,6 +165,7 @@ export const DEFAULT_CONTENT: SiteContent = {
   },
 
   about: {
+    layout: { sections: shown("bio", "timeline", "approach", "tools", "cta") },
     seo: {
       title: "À propos · Rihab Baabou",
       description:
@@ -169,6 +205,8 @@ export const DEFAULT_CONTENT: SiteContent = {
       title: "Une base technique solide.",
       software: ["AutoCAD", "SketchUp", "Lumion", "V-Ray", "D5 Render"],
       skills: ["Dessins techniques", "Matériaux", "Éclairage", "Coordination de projet"],
+      softwareAria: "Logiciels",
+      skillsAria: "Compétences",
     },
     cta: {
       title: `Un projet en tête${NB}?\n*Parlons-en.*`,
@@ -178,6 +216,7 @@ export const DEFAULT_CONTENT: SiteContent = {
   },
 
   services: {
+    layout: { sections: shown("list", "audiences", "steps", "cta") },
     seo: {
       title: "Services · Rihab Baabou",
       description:
@@ -221,6 +260,7 @@ export const DEFAULT_CONTENT: SiteContent = {
           ],
         },
       ],
+      deliverablesAria: "Livrables possibles",
     },
     scope: {
       label: "Périmètre de mission",
@@ -252,6 +292,7 @@ export const DEFAULT_CONTENT: SiteContent = {
   },
 
   projects: {
+    layout: { sections: shown("listing", "cta") },
     seo: {
       title: "Projets · Rihab Baabou",
       description: "Projets d’architecture intérieure de Rihab Baabou : espaces résidentiels et commerciaux à Gabès et Sousse.",
@@ -276,6 +317,7 @@ export const DEFAULT_CONTENT: SiteContent = {
   },
 
   projectDetail: {
+    layout: { sections: shown("gallery", "next", "cta") },
     labels: {
       breadcrumb: "Projets",
       place: "Lieu",
@@ -293,6 +335,7 @@ export const DEFAULT_CONTENT: SiteContent = {
   },
 
   formations: {
+    layout: { sections: shown("image", "courses", "upcoming") },
     seo: {
       title: "Formations · Rihab Baabou",
       description:
@@ -327,6 +370,7 @@ export const DEFAULT_CONTENT: SiteContent = {
       ],
       audience: "Pour les étudiants et les designers en début de parcours",
       button: "Être informé des prochaines formations",
+      topicsAria: "Thèmes des futures formations",
     },
   },
 
@@ -360,6 +404,7 @@ export const DEFAULT_CONTENT: SiteContent = {
       locationPlaceholder: "Ville ou région",
       message: "Message",
       messagePlaceholder: "Présentez votre espace, vos attentes et le calendrier envisagé.",
+      formationOption: "Formation",
       formationPreset: "Je souhaite être informé(e) des prochaines formations.",
       note: "Ce formulaire prépare votre message, puis vous l’envoyez depuis votre messagerie ou WhatsApp. Il ne transmet encore rien directement. Vous pouvez aussi écrire à **{email}**.",
       submit: "Envoyer ma demande",
@@ -377,6 +422,7 @@ export const DEFAULT_CONTENT: SiteContent = {
       copyTextLabel: "Texte du message",
       mailSubjectProject: "Demande de projet · {type}",
       mailSubjectFormation: "Formations",
+      subjectLabel: "Objet",
     },
     errors: {
       summaryOne: "Un champ à compléter.",

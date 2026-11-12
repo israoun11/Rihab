@@ -8,6 +8,7 @@ import { publicRouter } from "./routes/public.js";
 import { authRouter } from "./routes/auth.js";
 import { adminRouter } from "./routes/admin.js";
 import { errorHandler, notFoundApi } from "./middleware/errors.js";
+import { pageMeta, renderIndex } from "./services/seo.js";
 
 /** Addresses of the former static site, kept working with permanent redirects. */
 const LEGACY: Record<string, string> = {
@@ -71,9 +72,24 @@ export function createApp(cfg: AppConfig): Express {
         },
       }),
     );
-    app.get(/^\/(?!api\/|media\/).*/, (_req, res) => {
+    const template = fs.readFileSync(indexHtml, "utf8");
+    // Every page: index.html with the language, direction, title, description and
+    // social tags of that page, taken from the saved content (good for search engines
+    // and link previews), and a real 404 status for unknown addresses.
+    app.get(/^\/(?!api\/|media\/).*/, async (req, res) => {
       res.setHeader("Cache-Control", "no-cache");
-      res.sendFile(indexHtml);
+      res.type("html");
+      if (req.path.startsWith("/admin")) {
+        res.send(template.replace("<head>", '<head>\n<meta name="robots" content="noindex, nofollow">'));
+        return;
+      }
+      try {
+        const { meta, content } = await pageMeta(req.path);
+        res.status(meta.status).send(renderIndex(template, meta, content, `${req.protocol}://${req.get("host") ?? "localhost"}`));
+      } catch (err) {
+        console.error("Métadonnées de page indisponibles :", err);
+        res.send(template);
+      }
     });
   } else {
     app.get("/", (_req, res) => {

@@ -1,9 +1,12 @@
 import { DEFAULT_CATEGORIES, DEFAULT_PROJECTS } from "@rihab/shared";
 import { AdminUser, CategoryModel, ProjectModel } from "../models/index.js";
 import { hashPassword, PASSWORD_MIN_LENGTH } from "../lib/password.js";
+import { checkProjectImages, upgradeLegacyProjects } from "./projects.js";
 
 /** Inserts the original categories and projects when the collections are empty. Safe to run repeatedly. */
 export async function seedProjects(log = console.log): Promise<void> {
+  await upgradeLegacyProjects(log);
+  await checkProjectImages();
   if ((await CategoryModel.estimatedDocumentCount()) === 0) {
     await CategoryModel.insertMany(DEFAULT_CATEGORIES.map((c, i) => ({ ...c, order: i + 1 })));
     log(`Catégories initiales créées (${DEFAULT_CATEGORIES.length}).`);

@@ -1,12 +1,14 @@
 import { useEffect, useLayoutEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { useSite } from "../content/ContentContext";
+import { usePagePath } from "../i18n/Link";
 import { Nav } from "./Nav";
 import { Footer } from "./Footer";
 
 export function SiteLayout() {
   const { content } = useSite();
   const { pathname, hash, key } = useLocation();
+  const page = usePagePath();
 
   // New page: start at the top. Same page with a #section: scroll to it.
   useLayoutEffect(() => {
@@ -25,7 +27,7 @@ export function SiteLayout() {
       <a className="skip-link" href="#contenu">
         {content.site.identity.skipLink}
       </a>
-      <Nav solid={pathname !== "/"} />
+      <Nav solid={page !== "/"} />
       <Outlet />
       <Footer />
     </>

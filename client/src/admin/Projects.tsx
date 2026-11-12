@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import type { Category, Project } from "@rihab/shared";
+import { localizePath, pickText, projectGaps, type CategoryRecord as Category, type ProjectRecord as Project } from "@rihab/shared";
 import { ApiError } from "../api/http";
 import { adminApi, slugify } from "./api";
 import { move, MoveButtons } from "./fields";
 import { ErrorList, Spinner, useToast } from "./ui";
+import { EditLangTabs, GapBadge, LANG_IN, useEditLang } from "./editLang";
 
 export function ProjectsAdmin() {
   const toast = useToast();
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [error, setError] = useState("");
+  const { lang } = useEditLang();
 
   const load = useCallback(async () => {
     try {
@@ -40,7 +42,7 @@ export function ProjectsAdmin() {
   };
 
   const remove = async (p: Project) => {
-    if (!window.confirm(`Supprimer définitivement le projet « ${p.title} » ? Ses images restent dans la médiathèque.`)) return;
+    if (!window.confirm(`Supprimer définitivement le projet « ${p.title.fr} » (dans les trois langues) ? Ses images restent dans la médiathèque.`)) return;
     try {
       await adminApi.deleteProject(p.id);
       setProjects((list) => list?.filter((x) => x.id !== p.id) ?? null);
@@ -53,7 +55,14 @@ export function ProjectsAdmin() {
   if (error) return <ErrorList title={error} items={[]} />;
   if (!projects) return <Spinner />;
 
-  const catName = (slug: string) => categories.find((c) => c.slug === slug)?.name ?? slug;
+  const catName = (slug: string) => {
+    const c = categories.find((x) => x.slug === slug);
+    return c ? pickText(c.name, lang) : slug;
+  };
+  const gaps = {
+    ar: projects.reduce((n, p) => n + projectGaps(p, "ar"), 0) + categories.filter((c) => !c.name.ar).length,
+    en: projects.reduce((n, p) => n + projectGaps(p, "en"), 0) + categories.filter((c) => !c.name.en).length,
+  };
 
   return (
     <div className="a-page">
@@ -64,7 +73,7 @@ export function ProjectsAdmin() {
           <p className="a-help">L’ordre ci-dessous est celui de la page Projets (au sein de chaque catégorie) et du lien « Projet suivant ».</p>
         </div>
         <div className="a-row">
-          <a className="a-btn a-btn--ghost" href="/projets" target="_blank" rel="noopener">
+          <a className="a-btn a-btn--ghost" href={localizePath("/projets", lang)} target="_blank" rel="noopener">
             Voir sur le site ↗
           </a>
           <Link className="a-btn a-btn--primary" to="/admin/projets/nouveau">
@@ -73,21 +82,25 @@ export function ProjectsAdmin() {
         </div>
       </header>
 
+      <EditLangTabs gaps={gaps} />
+
       <section className="a-card">
         <div className="a-card__head">
           <h2>{projects.length} projet{projects.length > 1 ? "s" : ""}</h2>
         </div>
+        {projects.length === 0 && <p className="a-help">Aucun projet : la page Projets et le diaporama de l’accueil n’affichent rien tant qu’un projet n’est pas créé.</p>}
         <ul className="a-list">
           {projects.map((p, i) => (
             <li className="a-list__row" key={p.id}>
               <span className="a-list__thumb">
-                <img src={p.cover.src} alt="" />
+                {(p.cover ?? p.images[0]) && <img src={(p.cover ?? p.images[0])!.src} alt="" />}
               </span>
               <span className="a-list__main">
-                <strong>{p.title}</strong>
-                <span className="a-help">
-                  {p.place} · {p.typeLabel} · catégorie {catName(p.category)} · {p.images.length} image{p.images.length > 1 ? "s" : ""}
+                <strong dir="auto">{pickText(p.title, lang)}</strong>
+                <span className="a-help" dir="auto">
+                  {pickText(p.place, lang)} · {pickText(p.typeLabel, lang)} · catégorie {catName(p.category)} · {p.images.length} image{p.images.length > 1 ? "s" : ""}
                 </span>
+                <GapBadge count={projectGaps(p, lang)} lang={lang} />
               </span>
               <span className="a-row a-list__actions">
                 <MoveButtons index={i} length={projects.length} onMove={reorder} label="le projet" />
@@ -103,24 +116,35 @@ export function ProjectsAdmin() {
         </ul>
       </section>
 
-      <CategoriesCard categories={categories} projects={projects} onChange={setCategories} />
+      <CategoriesCard categories={categories} projects={projects} onChange={setCategories} lang={lang} />
     </div>
   );
 }
 
-function CategoriesCard({ categories, projects, onChange }: { categories: Category[]; projects: Project[]; onChange: (c: Category[]) => void }) {
+function CategoriesCard({
+  categories,
+  projects,
+  onChange,
+  lang,
+}: {
+  categories: Category[];
+  projects: Project[];
+  onChange: (c: Category[]) => void;
+  lang: "fr" | "ar" | "en";
+}) {
   const toast = useToast();
   const [names, setNames] = useState<Record<string, string>>({});
   const [newName, setNewName] = useState("");
   const fail = (e: unknown) => toast("error", e instanceof ApiError ? e.message : "Opération impossible.");
 
-  useEffect(() => setNames(Object.fromEntries(categories.map((c) => [c.id, c.name]))), [categories]);
+  const own = (c: Category) => (lang === "fr" ? c.name.fr : c.name[lang]) ?? "";
+  useEffect(() => setNames(Object.fromEntries(categories.map((c) => [c.id, own(c)]))), [categories, lang]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const rename = async (c: Category) => {
     const name = (names[c.id] ?? "").trim();
-    if (!name || name === c.name) return;
+    if ((lang === "fr" && !name) || name === own(c)) return;
     try {
-      const updated = await adminApi.updateCategory(c.id, name);
+      const updated = await adminApi.updateCategory(c.id, { ...c.name, [lang]: name });
       onChange(categories.map((x) => (x.id === c.id ? updated : x)));
       toast("ok", "Catégorie renommée.");
     } catch (e) {
@@ -131,7 +155,7 @@ function CategoriesCard({ categories, projects, onChange }: { categories: Catego
     const name = newName.trim();
     if (!name) return;
     try {
-      const c = await adminApi.createCategory(slugify(name) || "categorie", name);
+      const c = await adminApi.createCategory(slugify(name) || "categorie", { fr: name });
       onChange([...categories, c]);
       setNewName("");
       toast("ok", "Catégorie ajoutée.");
@@ -140,7 +164,7 @@ function CategoriesCard({ categories, projects, onChange }: { categories: Catego
     }
   };
   const remove = async (c: Category) => {
-    if (!window.confirm(`Supprimer la catégorie « ${c.name} » ?`)) return;
+    if (!window.confirm(`Supprimer la catégorie « ${c.name.fr} » ?`)) return;
     try {
       await adminApi.deleteCategory(c.id);
       onChange(categories.filter((x) => x.id !== c.id));
@@ -164,7 +188,10 @@ function CategoriesCard({ categories, projects, onChange }: { categories: Catego
       <div className="a-card__head">
         <h2>Catégories</h2>
       </div>
-      <p className="a-help">Les projets sont regroupés par catégorie sur la page Projets, dans cet ordre. Une catégorie sans projet n’est pas affichée.</p>
+      <p className="a-help">
+        Les projets sont regroupés par catégorie sur la page Projets, dans cet ordre. Une catégorie sans projet n’est pas affichée. Les noms ci-dessous sont ceux{" "}
+        {LANG_IN[lang]}.
+      </p>
       <ul className="a-list">
         {categories.map((c, i) => {
           const count = projects.filter((p) => p.category === c.slug).length;
@@ -173,7 +200,9 @@ function CategoriesCard({ categories, projects, onChange }: { categories: Catego
               <span className="a-list__main a-row">
                 <input
                   type="text"
-                  aria-label={`Nom de la catégorie ${c.name}`}
+                  dir={lang === "ar" ? "rtl" : "ltr"}
+                  placeholder={lang !== "fr" ? c.name.fr : undefined}
+                  aria-label={`Nom de la catégorie ${c.name.fr} ${LANG_IN[lang]}`}
                   value={names[c.id] ?? ""}
                   onChange={(e) => setNames((n) => ({ ...n, [c.id]: e.target.value }))}
                   onKeyDown={(e) => e.key === "Enter" && void rename(c)}
@@ -181,9 +210,15 @@ function CategoriesCard({ categories, projects, onChange }: { categories: Catego
                 <span className="a-help">
                   {count} projet{count > 1 ? "s" : ""}
                 </span>
+                {lang !== "fr" && !c.name[lang] && <span className="a-pill a-pill--warn">À traduire</span>}
               </span>
               <span className="a-row a-list__actions">
-                <button type="button" className="a-btn a-btn--sm" disabled={(names[c.id] ?? "").trim() === c.name || !(names[c.id] ?? "").trim()} onClick={() => rename(c)}>
+                <button
+                  type="button"
+                  className="a-btn a-btn--sm"
+                  disabled={(names[c.id] ?? "").trim() === own(c) || (lang === "fr" && !(names[c.id] ?? "").trim())}
+                  onClick={() => rename(c)}
+                >
                   Enregistrer
                 </button>
                 <MoveButtons index={i} length={categories.length} onMove={reorder} label="la catégorie" />
@@ -196,7 +231,7 @@ function CategoriesCard({ categories, projects, onChange }: { categories: Catego
         })}
       </ul>
       <div className="a-row a-add">
-        <input type="text" placeholder="Nouvelle catégorie" aria-label="Nom de la nouvelle catégorie" value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void add()} />
+        <input type="text" placeholder="Nouvelle catégorie (nom en français)" aria-label="Nom de la nouvelle catégorie, en français" value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && void add()} />
         <button type="button" className="a-btn a-btn--sm" onClick={add} disabled={!newName.trim()}>
           + Ajouter
         </button>

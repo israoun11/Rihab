@@ -2,16 +2,20 @@ import { useSite } from "../content/ContentContext";
 import { useSeo } from "../hooks/useSeo";
 import { useEntrances } from "../hooks/useEntrances";
 import { Lines } from "../components/Rich";
-import { BtnLink, CtaBand, PageHead, Steps, pad2 } from "../components/Blocks";
+import { BtnLink, CtaBand, PageHead, Sections, Steps, pad2 } from "../components/Blocks";
 
 export function Services() {
   const { content } = useSite();
   const s = content.services;
   useSeo(s.seo.title, s.seo.description);
-  useEntrances([]);
+  useEntrances([s.layout]);
   return (
     <main id="contenu">
       <PageHead {...s.head} />
+      <Sections
+        layout={s.layout.sections}
+        blocks={{
+          list: () => (
       <section className="section section--tight">
         <div className="wrap grid">
           <div className="services">
@@ -21,7 +25,7 @@ export function Services() {
                 <h3 className="svc__title">{it.title}</h3>
                 <p className="svc__desc">{it.description}</p>
                 {it.deliverables.length > 0 && (
-                  <ul className="svc__list" aria-label="Livrables possibles">
+                  <ul className="svc__list" aria-label={s.list.deliverablesAria}>
                     {it.deliverables.map((d, j) => (
                       <li key={j}>{d}</li>
                     ))}
@@ -36,6 +40,8 @@ export function Services() {
           </div>
         </div>
       </section>
+          ),
+          audiences: () => (
       <section className="section">
         <div className="wrap grid">
           <div className="grid s-head" style={{ gridColumn: "1/-1" }}>
@@ -54,6 +60,8 @@ export function Services() {
           </ul>
         </div>
       </section>
+          ),
+          steps: () => (
       <section className="section">
         <div className="wrap grid">
           <div className="grid s-head" style={{ gridColumn: "1/-1" }}>
@@ -65,9 +73,14 @@ export function Services() {
           <Steps items={s.steps.items} />
         </div>
       </section>
-      <CtaBand title={s.cta.title}>
-        <BtnLink to="/contact">{s.cta.primary}</BtnLink>
-      </CtaBand>
+          ),
+          cta: () => (
+            <CtaBand title={s.cta.title}>
+              <BtnLink to="/contact">{s.cta.primary}</BtnLink>
+            </CtaBand>
+          ),
+        }}
+      />
     </main>
   );
 }

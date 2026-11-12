@@ -23,6 +23,8 @@ export interface TextFieldDef {
   readonly type: "text";
   readonly label: string;
   readonly help?: string;
+  /** false: the same value in every language (e-mail, phone, numbers). Texts are translatable by default. */
+  readonly i18n?: false;
   /** Multi-line input. */
   readonly multiline?: boolean;
   /** Supports *italique*, **gras**, line breaks and {email} / {phone} tokens. */
@@ -51,6 +53,42 @@ export interface StringListFieldDef {
   readonly label: string;
   readonly itemLabel: string;
   readonly help?: string;
+  readonly i18n?: false;
+}
+
+/** Colour, stored as #RRGGBB. Same in every language. */
+export interface ColorFieldDef {
+  readonly type: "color";
+  readonly label: string;
+  readonly help?: string;
+}
+
+/** One value from a fixed list. Same in every language. */
+export interface SelectFieldDef {
+  readonly type: "select";
+  readonly label: string;
+  readonly help?: string;
+  readonly options: readonly { readonly value: string; readonly label: string }[];
+}
+
+/** On / off switch. Same in every language. */
+export interface BooleanFieldDef {
+  readonly type: "boolean";
+  readonly label: string;
+  readonly help?: string;
+}
+
+/** Order and visibility of a fixed set of blocks (page sections, menu entries). */
+export interface LayoutFieldDef {
+  readonly type: "layout";
+  readonly label: string;
+  readonly help?: string;
+  readonly items: readonly { readonly key: string; readonly label: string }[];
+}
+
+export interface LayoutItem {
+  key: string;
+  visible: boolean;
 }
 
 export interface ListFieldDef {
@@ -61,7 +99,15 @@ export interface ListFieldDef {
   readonly fields: { readonly [key: string]: LeafFieldDef };
 }
 
-export type LeafFieldDef = TextFieldDef | UrlFieldDef | ImageFieldDef | StringListFieldDef;
+export type LeafFieldDef =
+  | TextFieldDef
+  | UrlFieldDef
+  | ImageFieldDef
+  | StringListFieldDef
+  | ColorFieldDef
+  | SelectFieldDef
+  | BooleanFieldDef
+  | LayoutFieldDef;
 export type FieldDef = LeafFieldDef | ListFieldDef;
 
 export interface SectionDef {
@@ -114,6 +160,26 @@ const pageHead = {
 const RICH_HELP = "Retour à la ligne pour couper le titre, *texte* pour l’italique.";
 const PROSE_HELP = "Une ligne vide sépare les paragraphes. **texte** pour le gras, *texte* pour l’italique.";
 
+/** Order and visibility of the sections of a page (the page header / hero always stays first). */
+function layoutSection<const I extends readonly { readonly key: string; readonly label: string }[]>(items: I) {
+  return {
+    label: "Sections de la page (ordre et affichage)",
+    description: "Réordonnez les sections avec les flèches, décochez une section pour la masquer. L’en-tête de la page reste toujours en premier.",
+    fields: {
+      sections: { type: "layout", label: "Sections", items },
+    },
+  } as const;
+}
+
+/** Google Fonts offered in the design settings (the first one is the original). */
+export const FONT_OPTIONS = {
+  sans: ["Hanken Grotesk", "Inter", "DM Sans", "Manrope", "Work Sans", "Jost"],
+  serif: ["Instrument Serif", "Cormorant Garamond", "Playfair Display", "DM Serif Display", "Fraunces", "Libre Caslon Text"],
+  arabicSans: ["IBM Plex Sans Arabic", "Noto Kufi Arabic", "Tajawal", "Cairo", "Almarai"],
+  arabicSerif: ["Noto Naskh Arabic", "Amiri", "Reem Kufi", "Markazi Text", "Lateef"],
+} as const;
+const fontOptions = (list: readonly string[]) => list.map((f) => ({ value: f, label: f }));
+
 export const CONTENT_SCHEMA = {
   site: {
     label: "Éléments communs",
@@ -127,22 +193,73 @@ export const CONTENT_SCHEMA = {
           skipLink: { type: "text", label: "Lien d’accès direct au contenu" },
           demoTag: { type: "text", label: "Étiquette des images de démonstration" },
           demoAltPrefix: { type: "text", label: "Préfixe du texte alternatif des images de démonstration" },
+          logo: {
+            type: "image",
+            label: "Logo (remplace le nom dans la barre de navigation et le pied de page)",
+            ratio: "4 / 1",
+            optional: true,
+            help: "PNG ou WebP sur fond transparent, clair sur fond sombre. Sans logo, le nom est affiché.",
+          },
+          favicon: { type: "image", label: "Icône de l’onglet du navigateur (favicon)", ratio: "1 / 1", optional: true, help: "Image carrée, 512 × 512 px de préférence." },
+        },
+      },
+      seo: {
+        label: "Référencement commun",
+        fields: {
+          shareImage: {
+            type: "image",
+            label: "Image de partage (réseaux sociaux)",
+            ratio: "1.91 / 1",
+            optional: true,
+            help: "Affichée quand un lien du site est partagé. 1200 × 630 px recommandés.",
+          },
+        },
+      },
+      design: {
+        label: "Apparence (couleurs et polices)",
+        description: "Couleurs et polices de tout le site. « Rétablir le contenu d’origine » remet l’apparence d’origine.",
+        fields: {
+          ink: { type: "color", label: "Fond principal (sombre)" },
+          surface: { type: "color", label: "Fond des blocs surélevés" },
+          paper: { type: "color", label: "Texte principal et fonds clairs" },
+          wine: { type: "color", label: "Couleur d’accent" },
+          wineHover: { type: "color", label: "Couleur d’accent au survol" },
+          muted: { type: "color", label: "Texte secondaire sur fond sombre" },
+          mutedPaper: { type: "color", label: "Texte secondaire sur fond clair" },
+          sans: { type: "select", label: "Police du texte", options: fontOptions(FONT_OPTIONS.sans) },
+          serif: { type: "select", label: "Police des titres", options: fontOptions(FONT_OPTIONS.serif) },
+          arabicSans: { type: "select", label: "Police du texte (arabe)", options: fontOptions(FONT_OPTIONS.arabicSans) },
+          arabicSerif: { type: "select", label: "Police des titres (arabe)", options: fontOptions(FONT_OPTIONS.arabicSerif) },
         },
       },
       contact: {
         label: "Coordonnées",
         description: "Utilisées dans le menu, le pied de page, la page Contact et le formulaire.",
         fields: {
-          email: { type: "text", label: "Adresse e-mail" },
-          phone: { type: "text", label: "Téléphone (affiché)" },
-          whatsapp: { type: "text", label: "Numéro WhatsApp", help: "Chiffres uniquement, avec l’indicatif pays. Exemple : 21629545981" },
+          email: { type: "text", label: "Adresse e-mail", i18n: false },
+          phone: { type: "text", label: "Téléphone (affiché)", i18n: false },
+          whatsapp: { type: "text", label: "Numéro WhatsApp", help: "Chiffres uniquement, avec l’indicatif pays. Exemple : 21629545981", i18n: false },
           location: { type: "text", label: "Ville" },
         },
       },
       nav: {
         label: "Navigation",
-        description: "L’ordre des liens est fixe : Accueil, À propos, Services, Projets, Formations, puis Contact.",
+        description: "Libellés, ordre et affichage des liens du menu (barre de navigation, menu mobile et pied de page).",
         fields: {
+          items: {
+            type: "layout",
+            label: "Liens du menu (ordre et affichage)",
+            help: "Contact apparaît dans le menu mobile et le pied de page ; sur ordinateur, c’est le bouton de la barre.",
+            items: [
+              { key: "home", label: "Accueil" },
+              { key: "about", label: "À propos" },
+              { key: "services", label: "Services" },
+              { key: "projects", label: "Projets" },
+              { key: "formations", label: "Formations" },
+              { key: "contact", label: "Contact" },
+            ],
+          },
+          ctaVisible: { type: "boolean", label: "Afficher le bouton de la barre de navigation" },
           home: { type: "text", label: "Accueil" },
           about: { type: "text", label: "À propos" },
           services: { type: "text", label: "Services" },
@@ -152,6 +269,9 @@ export const CONTENT_SCHEMA = {
           cta: { type: "text", label: "Bouton de la barre de navigation" },
           menu: { type: "text", label: "Bouton du menu mobile" },
           close: { type: "text", label: "Bouton de fermeture du menu mobile" },
+          mainLabel: { type: "text", label: "Nom du menu principal (lecteurs d’écran)" },
+          mobileLabel: { type: "text", label: "Nom du menu mobile (lecteurs d’écran)" },
+          language: { type: "text", label: "Nom du sélecteur de langue (lecteurs d’écran)" },
         },
       },
       footer: {
@@ -197,6 +317,13 @@ export const CONTENT_SCHEMA = {
     path: "/",
     sections: {
       seo,
+      layout: layoutSection([
+        { key: "about", label: "À propos" },
+        { key: "services", label: "Services" },
+        { key: "projects", label: "Projets (diaporama)" },
+        { key: "formations", label: "Formations" },
+        { key: "contact", label: "Contact" },
+      ]),
       hero: {
         label: "Section d’ouverture",
         fields: {
@@ -231,7 +358,7 @@ export const CONTENT_SCHEMA = {
         fields: {
           label: { type: "text", label: "Surtitre" },
           title: { type: "text", label: "Titre", rich: true, multiline: true, help: RICH_HELP },
-          count: { type: "text", label: "Nombre de services affichés", help: "Un chiffre, par exemple 3." },
+          count: { type: "text", label: "Nombre de services affichés", help: "Un chiffre, par exemple 3.", i18n: false },
           text: { type: "text", label: "Phrase d’accompagnement", multiline: true },
           button: { type: "text", label: "Bouton vers la page Services" },
         },
@@ -244,18 +371,15 @@ export const CONTENT_SCHEMA = {
           title: { type: "text", label: "Titre", rich: true, multiline: true, help: RICH_HELP },
           text: { type: "text", label: "Texte d’introduction", multiline: true },
           link: { type: "text", label: "Lien de chaque projet" },
-          interval: { type: "text", label: "Durée d’affichage de chaque projet (secondes)", help: "Entre 3 et 15. Par défaut : 6." },
-          meta: { type: "text", label: "Mention à côté du bouton" },
+          interval: { type: "text", label: "Durée d’affichage de chaque projet (secondes)", help: "Entre 3 et 15. Par défaut : 6.", i18n: false },
           button: { type: "text", label: "Bouton vers la page Projets" },
           carouselLabel: { type: "text", label: "Nom du diaporama (lecteurs d’écran)" },
-          prev: { type: "text", label: "Flèche précédente (lecteurs d’écran)" },
-          next: { type: "text", label: "Flèche suivante (lecteurs d’écran)" },
-          goTo: { type: "text", label: "Indicateurs (lecteurs d’écran)", help: "{n} est remplacé par le numéro, {title} par le nom du projet." },
+          roleDescription: { type: "text", label: "Type d’élément annoncé (lecteurs d’écran)", help: "Par exemple « carrousel »." },
         },
       },
       formations: {
         label: "Formations (aperçu sur l’accueil)",
-        description: "Le statut et les thèmes viennent de la page Formations.",
+        description: "Masquée par défaut : activez-la dans « Sections de la page ». Le statut et les thèmes viennent de la page Formations.",
         fields: {
           label: { type: "text", label: "Surtitre" },
           title: { type: "text", label: "Titre", rich: true, multiline: true, help: RICH_HELP },
@@ -280,6 +404,13 @@ export const CONTENT_SCHEMA = {
     path: "/a-propos",
     sections: {
       seo,
+      layout: layoutSection([
+        { key: "bio", label: "Présentation" },
+        { key: "timeline", label: "Parcours" },
+        { key: "approach", label: "Approche" },
+        { key: "tools", label: "Outils & savoir-faire" },
+        { key: "cta", label: "Bandeau d’appel à l’action" },
+      ]),
       head: pageHead,
       bio: {
         label: "Présentation",
@@ -322,6 +453,8 @@ export const CONTENT_SCHEMA = {
           title: { type: "text", label: "Titre" },
           software: { type: "stringList", label: "Logiciels", itemLabel: "Logiciel" },
           skills: { type: "stringList", label: "Compétences", itemLabel: "Compétence" },
+          softwareAria: { type: "text", label: "Nom de la liste des logiciels (lecteurs d’écran)" },
+          skillsAria: { type: "text", label: "Nom de la liste des compétences (lecteurs d’écran)" },
         },
       },
       cta: ctaWithLink,
@@ -333,6 +466,12 @@ export const CONTENT_SCHEMA = {
     path: "/services",
     sections: {
       seo,
+      layout: layoutSection([
+        { key: "list", label: "Domaines d’intervention et périmètre" },
+        { key: "audiences", label: "Pour qui" },
+        { key: "steps", label: "Déroulement" },
+        { key: "cta", label: "Bandeau d’appel à l’action" },
+      ]),
       head: pageHead,
       list: {
         label: "Domaines d’intervention",
@@ -347,6 +486,7 @@ export const CONTENT_SCHEMA = {
               deliverables: { type: "stringList", label: "Livrables possibles", itemLabel: "Livrable" },
             },
           },
+          deliverablesAria: { type: "text", label: "Nom des listes de livrables (lecteurs d’écran)" },
         },
       },
       scope: {
@@ -397,6 +537,10 @@ export const CONTENT_SCHEMA = {
     path: "/projets",
     sections: {
       seo,
+      layout: layoutSection([
+        { key: "listing", label: "Liste des projets" },
+        { key: "cta", label: "Bandeau d’appel à l’action" },
+      ]),
       head: pageHead,
       listing: {
         label: "Liste des projets",
@@ -418,6 +562,11 @@ export const CONTENT_SCHEMA = {
     label: "Projets (fiche détaillée)",
     path: "/projets",
     sections: {
+      layout: layoutSection([
+        { key: "gallery", label: "Galerie d’images" },
+        { key: "next", label: "Projet suivant" },
+        { key: "cta", label: "Bandeau d’appel à l’action" },
+      ]),
       labels: {
         label: "Libellés communs aux fiches projet",
         fields: {
@@ -439,6 +588,11 @@ export const CONTENT_SCHEMA = {
     path: "/formations",
     sections: {
       seo,
+      layout: layoutSection([
+        { key: "image", label: "Image" },
+        { key: "courses", label: "Formations logiciels" },
+        { key: "upcoming", label: "À venir" },
+      ]),
       head: pageHead,
       image: {
         label: "Image",
@@ -495,6 +649,7 @@ export const CONTENT_SCHEMA = {
           },
           audience: { type: "text", label: "Public visé" },
           button: { type: "text", label: "Bouton" },
+          topicsAria: { type: "text", label: "Nom de la liste des thèmes (lecteurs d’écran)" },
         },
       },
     },
@@ -534,6 +689,7 @@ export const CONTENT_SCHEMA = {
           locationPlaceholder: { type: "text", label: "Exemple du champ « Localisation »" },
           message: { type: "text", label: "Champ « Message »" },
           messagePlaceholder: { type: "text", label: "Exemple du champ « Message »", multiline: true },
+          formationOption: { type: "text", label: "Type présélectionné par les liens « formations »", help: "Doit être l’un des types de projet proposés ci-dessus." },
           formationPreset: { type: "text", label: "Message prérempli (lien « formations »)" },
           note: { type: "text", label: "Note sous le formulaire", rich: true, multiline: true, help: "{email} est remplacé par l’adresse e-mail. **texte** pour le gras." },
           submit: { type: "text", label: "Bouton d’envoi" },
@@ -550,6 +706,7 @@ export const CONTENT_SCHEMA = {
           copyTextLabel: { type: "text", label: "Libellé du texte à copier (lecteurs d’écran)" },
           mailSubjectProject: { type: "text", label: "Objet de l’e-mail (projet)", help: "{type} est remplacé par le type de projet." },
           mailSubjectFormation: { type: "text", label: "Objet de l’e-mail (formation)" },
+          subjectLabel: { type: "text", label: "Mot « Objet » dans le message copié" },
         },
       },
       errors: {
@@ -574,8 +731,12 @@ export const CONTENT_SCHEMA = {
 /* Types derived from the schema                                             */
 /* ------------------------------------------------------------------------ */
 
-type LeafValue<F> = F extends { type: "text" } | { type: "url" }
+type LeafValue<F> = F extends { type: "text" } | { type: "url" } | { type: "color" } | { type: "select" }
   ? string
+  : F extends { type: "boolean" }
+    ? boolean
+  : F extends { type: "layout" }
+    ? LayoutItem[]
   : F extends { type: "image"; optional: true }
     ? ImageValue | null
     : F extends { type: "image" }

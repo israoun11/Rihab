@@ -2,20 +2,24 @@ import { useSite } from "../content/ContentContext";
 import { useSeo } from "../hooks/useSeo";
 import { useEntrances } from "../hooks/useEntrances";
 import { Fragment } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "../i18n/Link";
 import { Lines } from "../components/Rich";
 import { Frame } from "../components/Frame";
-import { BtnLink, PageHead } from "../components/Blocks";
+import { BtnLink, PageHead, Sections } from "../components/Blocks";
 
 export function Formations() {
   const { content } = useSite();
   const f = content.formations;
   useSeo(f.seo.title, f.seo.description);
-  useEntrances([]);
+  useEntrances([f.layout]);
   return (
     <main id="contenu">
       <PageHead {...f.head} />
-      {f.image.image && (
+      <Sections
+        layout={f.layout.sections}
+        blocks={{
+          image: () =>
+            f.image.image && (
         <section className="section fm-image" aria-label={f.image.image.alt || undefined}>
           <div className="wrap">
             <div data-in>
@@ -23,8 +27,9 @@ export function Formations() {
             </div>
           </div>
         </section>
-      )}
-      {f.courses.items.length > 0 && (
+            ),
+          courses: () =>
+            f.courses.items.length > 0 && (
         <section className="section on-paper courses" aria-labelledby="courses-title">
           <div className="wrap">
             <div className="courses__head">
@@ -59,7 +64,8 @@ export function Formations() {
             </ul>
           </div>
         </section>
-      )}
+            ),
+          upcoming: () => (
       <section className="section on-paper teach">
         <div className="wrap grid">
           <p className="label" style={{ gridColumn: "1/-1" }}>
@@ -77,7 +83,7 @@ export function Formations() {
               <p>{f.upcoming.text}</p>
             </div>
           </div>
-          <ul className="teach__topics" aria-label="Thèmes des futures formations">
+          <ul className="teach__topics" aria-label={f.upcoming.topicsAria}>
             {f.upcoming.topics.map((t, i) => (
               <li key={i}>
                 <span>{t.label}</span>
@@ -91,6 +97,9 @@ export function Formations() {
           </div>
         </div>
       </section>
+          ),
+        }}
+      />
     </main>
   );
 }

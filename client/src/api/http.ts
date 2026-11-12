@@ -1,3 +1,5 @@
+import { notifyContentChanged } from "../content/sync";
+
 export interface FieldIssue {
   path: string;
   message: string;
@@ -39,6 +41,7 @@ export async function api<T>(method: Method, url: string, body?: unknown): Promi
   } catch {
     throw new ApiError(0, "Connexion au serveur impossible. Vérifiez votre connexion et réessayez.");
   }
+  if (res.ok && method !== "GET" && url.startsWith("/api/admin/")) notifyContentChanged();
   if (res.status === 204) return undefined as T;
   const data: unknown = await res.json().catch(() => null);
   if (!res.ok) {

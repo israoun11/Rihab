@@ -3,17 +3,20 @@ import { useSeo } from "../hooks/useSeo";
 import { useEntrances } from "../hooks/useEntrances";
 import { Frame } from "../components/Frame";
 import { Paragraphs } from "../components/Rich";
-import { BtnLink, CtaBand, PageHead, TextLink } from "../components/Blocks";
+import { BtnLink, CtaBand, PageHead, Sections, TextLink } from "../components/Blocks";
 
 export function About() {
   const { content } = useSite();
   const a = content.about;
   useSeo(a.seo.title, a.seo.description);
-  useEntrances([]);
+  useEntrances([a.layout]);
   return (
     <main id="contenu">
       <PageHead {...a.head} />
-
+      <Sections
+        layout={a.layout.sections}
+        blocks={{
+          bio: () => (
       <section className="section">
         <div className="wrap grid">
           <div className="bio__portrait" data-in>
@@ -28,7 +31,8 @@ export function About() {
           </div>
         </div>
       </section>
-
+          ),
+          timeline: () => (
       <section className="section">
         <div className="wrap grid split">
           <div className="split__label">
@@ -50,7 +54,8 @@ export function About() {
           </div>
         </div>
       </section>
-
+          ),
+          approach: () => (
       <section className="section">
         <div className="wrap grid split">
           <div className="split__label">
@@ -64,7 +69,8 @@ export function About() {
           </div>
         </div>
       </section>
-
+          ),
+          tools: () => (
       <section className="section">
         <div className="wrap grid split">
           <div className="split__label">
@@ -72,12 +78,12 @@ export function About() {
           </div>
           <div className="split__body">
             <h2 className="h3">{a.tools.title}</h2>
-            <ul className="tools" aria-label="Logiciels">
+            <ul className="tools" aria-label={a.tools.softwareAria}>
               {a.tools.software.map((t) => (
                 <li key={t}>{t}</li>
               ))}
             </ul>
-            <ul className="tools" aria-label="Compétences">
+            <ul className="tools" aria-label={a.tools.skillsAria}>
               {a.tools.skills.map((t) => (
                 <li key={t}>{t}</li>
               ))}
@@ -85,11 +91,15 @@ export function About() {
           </div>
         </div>
       </section>
-
-      <CtaBand title={a.cta.title}>
-        <BtnLink to="/contact">{a.cta.primary}</BtnLink>
-        <TextLink to="/projets">{a.cta.secondary}</TextLink>
-      </CtaBand>
+          ),
+          cta: () => (
+            <CtaBand title={a.cta.title}>
+              <BtnLink to="/contact">{a.cta.primary}</BtnLink>
+              <TextLink to="/projets">{a.cta.secondary}</TextLink>
+            </CtaBand>
+          ),
+        }}
+      />
     </main>
   );
 }

@@ -1,48 +1,168 @@
-import type { Category, Project } from "@rihab/shared";
+import {
+  DEFAULT_CATEGORIES,
+  DEFAULT_PROJECTS,
+  isDict,
+  resolveCategory,
+  resolveProject,
+  type Category,
+  type CategoryRecord,
+  type Locale,
+  type LocalizedText,
+  type Project,
+  type ProjectRecord,
+  type RawImage,
+} from "@rihab/shared";
 import { CategoryModel, ProjectModel, type CategoryDoc, type ProjectDoc } from "../models/index.js";
 import { badRequest, conflict, notFound } from "../lib/httpError.js";
 import { categoryInputSchema, categoryUpdateSchema, orderSchema, projectInputSchema } from "./validation.js";
 
-type Img = Project["images"][number];
-const toImage = (i: { src: string; alt?: string | null; width: number; height: number; srcSet?: string | null; demo?: boolean | null }): Img => {
-  const img: Img = { src: i.src, alt: i.alt ?? "", width: i.width, height: i.height };
+/** Stored text → { fr, ar?, en? } (plain strings come from data saved before the site was multilingual). */
+export function asLocalized(v: unknown): LocalizedText {
+  if (typeof v === "string") return { fr: v };
+  if (!isDict(v)) return { fr: "" };
+  const out: LocalizedText = { fr: typeof v.fr === "string" ? v.fr : "" };
+  if (typeof v.ar === "string" && v.ar) out.ar = v.ar;
+  if (typeof v.en === "string" && v.en) out.en = v.en;
+  return out;
+}
+
+interface ImgDoc {
+  src: string;
+  alt?: unknown;
+  width: number;
+  height: number;
+  srcSet?: string | null;
+  demo?: boolean | null;
+}
+
+/** True for a stored image that can be shown (an object with a src). Data written outside the dashboard can hold null or {}. */
+const isImageDoc = (i: unknown): i is ImgDoc => isDict(i) && typeof i.src === "string" && i.src !== "";
+
+/** Stored image → RawImage, or null when the stored value is not a usable image. */
+const toImage = (i: unknown): RawImage | null => {
+  if (!isImageDoc(i)) return null;
+  const img: RawImage = { src: i.src, alt: asLocalized(i.alt), width: Number(i.width) || 0, height: Number(i.height) || 0 };
   if (i.srcSet) img.srcSet = i.srcSet;
   if (i.demo) img.demo = true;
   return img;
 };
 
-export const toProject = (d: ProjectDoc): Project => ({
+export const toProject = (d: ProjectDoc): ProjectRecord => ({
   id: String(d._id),
   slug: d.slug,
-  title: d.title,
-  place: d.place,
+  title: asLocalized(d.title),
+  place: asLocalized(d.place),
   category: d.category,
-  typeLabel: d.typeLabel,
-  description: d.description,
-  attribution: d.attribution ?? "",
-  cover: toImage(d.cover as unknown as Img),
-  images: (d.images as unknown as Img[]).map(toImage),
+  typeLabel: asLocalized(d.typeLabel),
+  description: asLocalized(d.description),
+  attribution: asLocalized(d.attribution),
+  cover: toImage(d.cover),
+  images: (Array.isArray(d.images) ? (d.images as unknown[]) : []).map(toImage).filter((i): i is RawImage => i !== null),
   order: d.order ?? 0,
 });
 
-export const toCategory = (d: CategoryDoc): Category => ({
+export const toCategory = (d: CategoryDoc): CategoryRecord => ({
   id: String(d._id),
   slug: d.slug,
-  name: d.name,
+  name: asLocalized(d.name),
   order: d.order ?? 0,
 });
 
 const issues = (e: { issues: { path: PropertyKey[]; message: string }[] }) =>
   e.issues.map((i) => ({ path: i.path.map(String).join("."), message: i.message }));
 
-export async function listProjects(): Promise<Project[]> {
+export async function listProjects(): Promise<ProjectRecord[]> {
   const docs = await ProjectModel.find({}).sort({ order: 1, _id: 1 }).lean<ProjectDoc[]>();
   return docs.map(toProject);
 }
 
-export async function listCategories(): Promise<Category[]> {
+export async function listCategories(): Promise<CategoryRecord[]> {
   const docs = await CategoryModel.find({}).sort({ order: 1, _id: 1 }).lean<CategoryDoc[]>();
   return docs.map(toCategory);
+}
+
+/** Projects and categories in one language, for the public site. */
+export async function listPublicProjects(lang: Locale): Promise<Project[]> {
+  return (await listProjects()).map((p) => resolveProject(p, lang));
+}
+export async function listPublicCategories(lang: Locale): Promise<Category[]> {
+  return (await listCategories()).map((c) => resolveCategory(c, lang));
+}
+
+/**
+ * One-off upgrade of projects and categories saved before the site was
+ * multilingual: their French texts become { fr }, and the translations of the
+ * original projects are added where the French text is still the original one.
+ * Safe to run on every start (does nothing once done).
+ */
+export async function upgradeLegacyProjects(log: (m: string) => void = console.log): Promise<void> {
+  const same = (a: unknown, b: LocalizedText) => (typeof a === "string" ? a : asLocalized(a).fr) === b.fr;
+  const pick = (stored: unknown, def: LocalizedText | undefined): LocalizedText =>
+    typeof stored !== "string" ? asLocalized(stored) : def && same(stored, def) ? def : { fr: stored };
+
+  let n = 0;
+  for (const c of await CategoryModel.find({ name: { $type: "string" } }).lean<CategoryDoc[]>()) {
+    const def = DEFAULT_CATEGORIES.find((d) => d.slug === c.slug)?.name;
+    await CategoryModel.updateOne({ _id: c._id }, { $set: { name: pick(c.name, def) } });
+    n++;
+  }
+  const legacy = await ProjectModel.find({
+    $or: [{ title: { $type: "string" } }, { description: { $type: "string" } }, { "cover.alt": { $type: "string" } }, { "images.alt": { $type: "string" } }],
+  }).lean<ProjectDoc[]>();
+  for (const p of legacy) {
+    const def = DEFAULT_PROJECTS.find((d) => d.slug === p.slug);
+    const defImgs = def ? [def.cover, ...def.images].filter((d): d is RawImage => d !== null) : [];
+    // Only well-formed images are converted; anything else (missing cover, null entry) is left as stored
+    // and reported by checkProjectImages, instead of stopping the server.
+    const img = (i: unknown) => {
+      if (!isImageDoc(i)) return i;
+      const alt = typeof i.alt === "string" ? pick(i.alt, defImgs.find((d) => d.src === i.src && same(i.alt, d.alt))?.alt) : asLocalized(i.alt);
+      return { ...i, alt };
+    };
+    await ProjectModel.updateOne(
+      { _id: p._id },
+      {
+        $set: {
+          title: pick(p.title, def?.title),
+          place: pick(p.place, def?.place),
+          typeLabel: pick(p.typeLabel, def?.typeLabel),
+          description: pick(p.description, def?.description),
+          attribution: pick(p.attribution ?? "", def?.attribution),
+          ...(p.cover !== undefined && { cover: img(p.cover) }),
+          ...(Array.isArray(p.images) && { images: (p.images as unknown[]).map(img) }),
+        },
+      },
+    );
+    n++;
+  }
+  if (n) log(`Contenu multilingue : ${n} projet(s) / catégorie(s) mis à jour.`);
+}
+
+/**
+ * Startup report of projects whose stored images cannot be shown (missing cover,
+ * empty or invalid image entries). The site still works: the cover falls back to
+ * the first image, invalid entries are skipped, and a project without any image
+ * shows an empty frame. Opening the project in the dashboard and saving it fixes it.
+ */
+export async function checkProjectImages(warn: (m: string) => void = console.warn): Promise<string[]> {
+  const docs = await ProjectModel.find({}, { slug: 1, cover: 1, images: 1 }).lean<ProjectDoc[]>();
+  const problems: string[] = [];
+  for (const d of docs) {
+    const list = Array.isArray(d.images) ? (d.images as unknown[]) : [];
+    const bad = list.filter((i) => !isImageDoc(i)).length;
+    const parts: string[] = [];
+    if (!isImageDoc(d.cover)) parts.push("image de la carte manquante");
+    if (bad) parts.push(`${bad} image(s) invalide(s) ignorée(s)`);
+    if (!list.some(isImageDoc)) parts.push("aucune image de projet");
+    if (parts.length) problems.push(`« ${d.slug} » : ${parts.join(", ")}`);
+  }
+  if (problems.length) {
+    warn(
+      `Attention, ${problems.length} projet(s) ont des images incomplètes dans la base de données (le site reste affiché, ` +
+        `ouvrez ces projets dans le tableau de bord pour compléter leurs images) :\n  - ${problems.join("\n  - ")}`,
+    );
+  }
+  return problems;
 }
 
 function parseProject(body: unknown) {
@@ -62,7 +182,7 @@ async function assertFreeSlug(slug: string, exceptId?: string) {
   }
 }
 
-export async function createProject(body: unknown): Promise<Project> {
+export async function createProject(body: unknown): Promise<ProjectRecord> {
   const data = parseProject(body);
   await assertCategory(data.category);
   await assertFreeSlug(data.slug);
@@ -71,7 +191,7 @@ export async function createProject(body: unknown): Promise<Project> {
   return toProject(doc.toObject() as ProjectDoc);
 }
 
-export async function updateProject(id: string, body: unknown): Promise<Project> {
+export async function updateProject(id: string, body: unknown): Promise<ProjectRecord> {
   const data = parseProject(body);
   await assertCategory(data.category);
   await assertFreeSlug(data.slug, id);
@@ -98,7 +218,7 @@ async function reorder(model: typeof ProjectModel | typeof CategoryModel, body: 
 export const reorderProjects = (body: unknown) => reorder(ProjectModel, body);
 export const reorderCategories = (body: unknown) => reorder(CategoryModel, body);
 
-export async function createCategory(body: unknown): Promise<Category> {
+export async function createCategory(body: unknown): Promise<CategoryRecord> {
   const parsed = categoryInputSchema.safeParse(body);
   if (!parsed.success) throw badRequest("Certaines valeurs ne sont pas valides.", issues(parsed.error));
   if (await CategoryModel.exists({ slug: parsed.data.slug })) throw conflict("Cette catégorie existe déjà.", [{ path: "slug", message: "Identifiant déjà utilisé." }]);
@@ -107,7 +227,7 @@ export async function createCategory(body: unknown): Promise<Category> {
   return toCategory(doc.toObject() as CategoryDoc);
 }
 
-export async function updateCategory(id: string, body: unknown): Promise<Category> {
+export async function updateCategory(id: string, body: unknown): Promise<CategoryRecord> {
   const parsed = categoryUpdateSchema.safeParse(body);
   if (!parsed.success) throw badRequest("Certaines valeurs ne sont pas valides.", issues(parsed.error));
   const doc = await CategoryModel.findByIdAndUpdate(id, { $set: parsed.data }, { new: true }).lean<CategoryDoc>();

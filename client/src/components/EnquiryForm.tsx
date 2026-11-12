@@ -45,14 +45,19 @@ export function EnquiryForm({ fid = "f" }: { fid?: string }) {
     [er],
   );
 
-  // Preset from "Être informé des prochaines formations" links.
+  // Preset from "Être informé des prochaines formations" links (option chosen in the dashboard, in every language).
+  const formationOption = f.typeOptions.includes(f.formationOption) ? f.formationOption : "";
   useEffect(() => {
     const preset = (new URLSearchParams(location.search).get("sujet") ?? "").toLowerCase();
-    if (preset === "formations" || /formation/i.test(location.hash)) {
-      const opt = f.typeOptions.find((o) => /formation/i.test(o));
-      setValues((v) => ({ ...v, type: opt ?? v.type, message: v.message || f.formationPreset }));
+    if (preset === "formations") {
+      setValues((v) => ({ ...v, type: formationOption || v.type, message: v.message || f.formationPreset }));
     }
-  }, [location.search, location.hash, f.typeOptions, f.formationPreset]);
+  }, [location.search, formationOption, f.formationPreset]);
+
+  // The options are those of the current language: a choice made in another language is cleared.
+  useEffect(() => {
+    setValues((v) => (v.type && !f.typeOptions.includes(v.type) ? { ...v, type: "" } : v));
+  }, [f.typeOptions]);
 
   useEffect(() => setCopyLabel(f.copyButton), [f.copyButton]);
 
@@ -84,7 +89,7 @@ export function EnquiryForm({ fid = "f" }: { fid?: string }) {
     }
     setSummary(null);
     setBusy(true);
-    const isFormation = /formation/i.test(values.type);
+    const isFormation = !!formationOption && values.type === formationOption;
     const subject = isFormation ? f.mailSubjectFormation : fill(f.mailSubjectProject, { type: values.type });
     const body =
       `${f.name} : ${values.nom.trim()}\n` +
@@ -96,7 +101,7 @@ export function EnquiryForm({ fid = "f" }: { fid?: string }) {
     const mail = `mailto:${EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     const wa = `https://wa.me/${whatsapp}?text=${encodeURIComponent(subject + "\n\n" + body)}`;
     window.setTimeout(() => {
-      setHandoff({ mail, wa, text: `Objet : ${subject}\n\n${body}` });
+      setHandoff({ mail, wa, text: `${f.subjectLabel} : ${subject}\n\n${body}` });
       setBusy(false);
       requestAnimationFrame(() => handoffRef.current?.focus());
     }, 450);

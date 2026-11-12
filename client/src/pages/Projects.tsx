@@ -1,10 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { fill } from "@rihab/shared";
 import { useSite } from "../content/ContentContext";
 import { useSeo } from "../hooks/useSeo";
 import { useEntrances } from "../hooks/useEntrances";
 import { ProjectCard } from "../components/ProjectCard";
-import { BtnLink, CtaBand, PageHead } from "../components/Blocks";
+import { BtnLink, CtaBand, PageHead, Sections } from "../components/Blocks";
 
 const ALL = "tous";
 
@@ -24,11 +24,19 @@ export function Projects() {
   );
   const visible = groups.filter((g) => filter === ALL || g.category.slug === filter);
   const shown = visible.reduce((n, g) => n + g.items.length, 0);
-  useEntrances([filter, projects]);
+  useEntrances([filter, projects, p.layout]);
+  // A category that no longer has projects (deleted or moved) cannot stay selected.
+  useEffect(() => {
+    if (filter !== ALL && !groups.some((g) => g.category.slug === filter)) setFilter(ALL);
+  }, [filter, groups]);
 
   return (
     <main id="contenu">
       <PageHead {...p.head} />
+      <Sections
+        layout={p.layout.sections}
+        blocks={{
+          listing: () => (
       <section className="section section--tight">
         <div className="wrap">
           {groups.length > 1 && (
@@ -69,9 +77,14 @@ export function Projects() {
           ))}
         </div>
       </section>
-      <CtaBand title={p.cta.title}>
-        <BtnLink to="/contact">{p.cta.primary}</BtnLink>
-      </CtaBand>
+          ),
+          cta: () => (
+            <CtaBand title={p.cta.title}>
+              <BtnLink to="/contact">{p.cta.primary}</BtnLink>
+            </CtaBand>
+          ),
+        }}
+      />
     </main>
   );
 }

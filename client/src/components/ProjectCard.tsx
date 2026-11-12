@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link } from "../i18n/Link";
 import type { Project } from "@rihab/shared";
 import { Frame } from "./Frame";
 import { Arrow } from "./Arrow";

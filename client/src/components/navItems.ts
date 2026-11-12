@@ -1,4 +1,4 @@
-import type { SiteContent } from "@rihab/shared";
+import { visibleKeys, type SiteContent } from "@rihab/shared";
 
 export type NavKey = "home" | "about" | "services" | "projects" | "formations" | "contact";
 
@@ -8,20 +8,33 @@ export interface NavItem {
   label: string;
 }
 
-/** Fixed order requested: Accueil, À propos, Services, Projets, Formations (Contact last). */
-export function navItems(nav: SiteContent["site"]["nav"], withContact: boolean): NavItem[] {
-  const items: NavItem[] = [
-    { key: "home", to: "/", label: nav.home },
-    { key: "about", to: "/#a-propos", label: nav.about },
-    { key: "services", to: "/services", label: nav.services },
-    { key: "projects", to: "/projets", label: nav.projects },
-    { key: "formations", to: "/formations", label: nav.formations },
-  ];
-  if (withContact) items.push({ key: "contact", to: "/contact", label: nav.contact });
-  return items;
+const KEYS: NavKey[] = ["home", "about", "services", "projects", "formations", "contact"];
+const isNavKey = (k: string): k is NavKey => (KEYS as string[]).includes(k);
+
+/**
+ * Menu entries in the order and with the visibility set in the dashboard
+ * (Éléments communs › Navigation). Contact is listed only where asked
+ * (mobile menu, footer); on desktop it is the button of the bar.
+ * "À propos" scrolls to the About preview of the homepage while it is shown there.
+ */
+export function navItems(content: SiteContent, withContact: boolean): NavItem[] {
+  const nav = content.site.nav;
+  const homeAbout = content.home.layout.sections.some((s) => s.key === "about" && s.visible);
+  const to: Record<NavKey, string> = {
+    home: "/",
+    about: homeAbout ? "/#a-propos" : "/a-propos",
+    services: "/services",
+    projects: "/projets",
+    formations: "/formations",
+    contact: "/contact",
+  };
+  return visibleKeys(nav.items)
+    .filter(isNavKey)
+    .filter((k) => withContact || k !== "contact")
+    .map((key) => ({ key, to: to[key], label: nav[key] }));
 }
 
-/** Which navigation entry the current address belongs to. */
+/** Which navigation entry the current address (without language prefix) belongs to. */
 export function currentNavKey(pathname: string, hash: string): NavKey | null {
   if (pathname === "/") return hash === "#a-propos" ? "about" : "home";
   if (pathname.startsWith("/a-propos")) return "about";

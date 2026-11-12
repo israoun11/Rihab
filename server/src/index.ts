@@ -24,6 +24,8 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("Démarrage impossible :", err instanceof Error ? err.message : err);
+  // Full stack trace: the file and line that failed, not only the message.
+  console.error("Démarrage impossible :", err instanceof Error ? (err.stack ?? err.message) : err);
+  console.error(`L’API n’écoute pas sur le port ${config.port} : le site en développement (Vite) répondra « ECONNREFUSED » tant que ce problème n’est pas corrigé.`);
   process.exit(1);
 });
